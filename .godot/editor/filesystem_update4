@@ -1,0 +1,4 @@
+res://addons/aravox/example/example.tscn
+res://addons/aravox/aravox_controller.gd
+res://addons/aravox/aravox_shorthands.gd
+res://addons/aravox/aravox.gd

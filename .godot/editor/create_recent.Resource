@@ -1,0 +1,2 @@
+AraVoxShorthands
+Resource
