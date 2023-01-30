@@ -11,11 +11,9 @@ signal script_generation_finished(script: Array[String])
 ##By default AraVox will look in your folder root.
 @export var shorthands_override := ""
 
-# Called when the node enters the scene tree for the first time.
-func _ready():
-	pass # Replace with function body.
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
-	pass
+func generate():
+	assert(dialogue_file != null, "You must supply a dialogue file in order to generate it.")
+	
+	if shorthands_override == "":
+		shorthands_override = "res://aravox_shorthands.tres"
+	var dialogue = AraVox.generate(dialogue_file, dialogue_data, shorthands_override)

@@ -3,13 +3,29 @@ extends Node
 var script_file = null
 var current_data = []
 
-func generate(script: String, data: Array = []) -> Array[String]:
+var shorthands_location = "res://aravox_shorthands.tres"
+
+var shorthands = null
+var shorthands_are_loaded = false
+
+func generate(script: String, data: Array = [], shorthands_override: String = "res://aravox_shorthands.tres") -> Array[String]:
 	script_file = script
 	current_data = data
-	return prepare_script()
+	
+	if shorthands_override != shorthands_location:
+		shorthands_location = "res://" + shorthands_override + "aravox_shorthands.tres"
+		shorthands_are_loaded = false
+	
+	if !shorthands_are_loaded:
+		if ResourceLoader.exists(shorthands_location):
+			shorthands = load(shorthands_location)
+	
+	var fixed = _prepare_script()
+	_flush()
+	return fixed
 
 # Loads the script file and starts preparing it for the in-game textboxes.
-func prepare_script() -> Array[String]:
+func _prepare_script() -> Array[String]:
 	var file = FileAccess.open(script_file, FileAccess.READ)
 	
 	var prepared := []
@@ -22,16 +38,16 @@ func prepare_script() -> Array[String]:
 		else:
 			if line != "":
 				var fixed_line = line
-				fixed_line = rand(fixed_line)
-				fixed_line = pl(fixed_line)
-				fixed_line = data(fixed_line)
-				fixed_line = shorthands(fixed_line)
+				fixed_line = _rand(fixed_line)
+				fixed_line = _pl(fixed_line)
+				fixed_line = _data(fixed_line)
+				fixed_line = _shorthands(fixed_line)
 				prepared.append(fixed_line)
 		idx += 1
 	return prepared
 
 # AraTalk rand: Shows one of the options the ones supplied by the script.
-func rand(line: String) -> String:
+func _rand(line: String) -> String:
 	if line.contains("rand{"):
 		var rand = RandomNumberGenerator.new()
 		rand.randomize()
@@ -45,7 +61,7 @@ func rand(line: String) -> String:
 		return line
 
 # AraVox pl: Takes an int and then selects one of the two supplied words.
-func pl(line: String) -> String:
+func _pl(line: String) -> String:
 	if (line.contains("pl{")):
 		var stuff_between = find_between(line, "pl{", "}")
 		var options = stuff_between.split("|")
@@ -61,7 +77,7 @@ func pl(line: String) -> String:
 		return line
 
 # AraVox data: replaces instances of $# with their respective data.
-func data(line: String) -> String:
+func _data(line: String) -> String:
 	if current_data.size() > 0:
 		if line.contains("$"):
 			var fixed = line
@@ -75,12 +91,13 @@ func data(line: String) -> String:
 		return line
 
 # AraVox shorthands: replaces instances of %"" with hard values.
-func shorthands(line: String) -> String:
+func _shorthands(line: String) -> String:
 	var fixed = line
-	fixed = fixed.replace("%ayl", "")
-	fixed = fixed.replace("%ara", "")
-	fixed = fixed.replace("%tas", "")
-	fixed = fixed.replace("%leader", "")
+	if shorthands != null:
+		for i in shorthands.shorthands.size():
+			var key = shorthands.keys[i]
+			var value = shorthands.values[i]
+			fixed = fixed.replace(key, value)
 	return line
 
 # Helpers below...
@@ -93,3 +110,7 @@ func get_specific_data(dataIndex: String) -> String:
 # Returns everything between two points in a string.
 func find_between(line: String, first: String, last: String) -> String:
 	return(line.split(first))[1].split(last)[0]
+
+func _flush():
+	script_file = null
+	current_data = []
