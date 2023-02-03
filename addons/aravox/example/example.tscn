@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://0wsg80me0cgj"]
+[gd_scene load_steps=4 format=3 uid="uid://0wsg80me0cgj"]
 
+[ext_resource type="Script" path="res://addons/aravox/example/example.gd" id="1_0bxnb"]
 [ext_resource type="Script" path="res://addons/aravox/aravox_controller.gd" id="1_oc5na"]
+[ext_resource type="Script" path="res://addons/aravox/aravox_textbox.gd" id="3_ioci0"]
 
 [node name="Example" type="Control"]
 layout_mode = 3
@@ -9,9 +11,56 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_0bxnb")
 
 [node name="AraVoxController" type="Control" parent="."]
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_oc5na")
+dialogue_file = "res://addons/aravox/example/example_script.txt"
+dialogue_data = [1]
+shorthands_override = "addons/aravox/example/"
+
+[node name="AraVoxTextbox" type="MarginContainer" parent="."]
+custom_minimum_size = Vector2(0, 400)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("3_ioci0")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="AraVoxTextbox"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="AraVoxTextbox/VBoxContainer"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="AraVoxTextbox/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 2
+
+[node name="NameDisplay" type="PanelContainer" parent="AraVoxTextbox/VBoxContainer/HBoxContainer/VBoxContainer"]
+custom_minimum_size = Vector2(150, 35)
+layout_mode = 2
+
+[node name="HighTechSpacer" type="Label" parent="AraVoxTextbox/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChoiceBox" type="PanelContainer" parent="AraVoxTextbox/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="TextBox" type="PanelContainer" parent="AraVoxTextbox/VBoxContainer"]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+
+[node name="TextBoxContent" type="RichTextLabel" parent="AraVoxTextbox/VBoxContainer/TextBox"]
+layout_mode = 2
+bbcode_enabled = true

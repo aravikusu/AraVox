@@ -1,5 +1,14 @@
 extends Node
 
+const aravox_funcs = ["#rand","#pl", "#if"]
+
+enum MustacheType {
+	FUNCTION = 0,
+	DATA = 1,
+	SHORTHAND = 2,
+	NONE = 99
+}
+
 var script_file = null
 var current_data = []
 
@@ -13,7 +22,7 @@ func generate(script: String, data: Array = [], shorthands_override: String = "r
 	current_data = data
 	
 	if shorthands_override != shorthands_location:
-		shorthands_location = "res://" + shorthands_override + "aravox_shorthands.tres"
+		shorthands_location = "res://" + shorthands_override + "/aravox_shorthands.tres"
 		shorthands_are_loaded = false
 	
 	if !shorthands_are_loaded:
@@ -34,64 +43,60 @@ func _prepare_script() -> Array[String]:
 		var line = file.get_line()
 		if idx == 0:
 			# Basic file validation, if the file isn't a script file, error out
-			assert(line == "## ARAVOX SCRIPT ##", "Aratalk Script is missing the validation header")
+			assert(line == "## ARAVOX SCRIPT ##", "AraVox: Validation header missing.")
 		else:
 			if line != "":
+				# Get every mustache found on this line
+				var mustaches = get_all_mustaches(line)
 				var fixed_line = line
-				fixed_line = _rand(fixed_line)
-				fixed_line = _pl(fixed_line)
-				fixed_line = _data(fixed_line)
-				fixed_line = _shorthands(fixed_line)
+				
+				for mustache in mustaches:
+					match mustache.type:
+						MustacheType.FUNCTION:
+							match mustache.name:
+								"#rand":
+									fixed_line = _rand(fixed_line, mustache)
+								"#pl":
+									fixed_line = _pl(fixed_line, mustache)
+						MustacheType.DATA:
+							fixed_line = _data(fixed_line, mustache)
+						MustacheType.SHORTHAND:
+							fixed_line = _shorthands(fixed_line, mustache)
 				prepared.append(fixed_line)
 		idx += 1
+	print(prepared)
 	return prepared
 
-# AraTalk rand: Shows one of the options the ones supplied by the script.
-func _rand(line: String) -> String:
-	if line.contains("rand{"):
-		var rand = RandomNumberGenerator.new()
-		rand.randomize()
-		
-		var stuff_between = find_between(line, "rand{", "}")
-		var options = stuff_between.split("|")
-		var fixed = line.replace("rand{" + stuff_between + "}", options[rand.randi_range(0, options.size() - 1)])
-		
-		return fixed
-	else:
-		return line
+# AraVox rand: Shows one of the options the ones supplied by the script.
+func _rand(line: String, mustache: Dictionary) -> String:
+	var rnd = RandomNumberGenerator.new()
+	rnd.randomize()
+	
+	var choice = mustache.vars[rnd.randi_range(0, mustache.vars.size() - 1)]
+	return line.replace(mustache.full_stache, choice)
 
 # AraVox pl: Takes an int and then selects one of the two supplied words.
-func _pl(line: String) -> String:
-	if (line.contains("pl{")):
-		var stuff_between = find_between(line, "pl{", "}")
-		var options = stuff_between.split("|")
-		var choice = ""
-		
-		var dataIndex = "$" + options[0]
-		if int(get_specific_data(dataIndex)) == 1:
-			choice = options[1]
-		else:
-			choice = options[2]
-		return line.replace("pl{" + stuff_between + "}", choice)
+func _pl(line: String, mustache: Dictionary) -> String:
+	var num = 0
+	var choice = ""
+	
+	if is_this_data(mustache.vars[0]):
+		num = get_specific_data(mustache.vars[0])
+	
+	if num == 1:
+		choice = mustache.vars[1]
 	else:
-		return line
+		choice = mustache.vars[2]
+	
+	return line.replace(mustache.full_stache, choice)
 
 # AraVox data: replaces instances of $# with their respective data.
-func _data(line: String) -> String:
-	if current_data.size() > 0:
-		if line.contains("$"):
-			var fixed = line
-			for i in current_data.size():
-				var dataIndex = "$" + str(i)
-				fixed = fixed.replace(dataIndex, get_specific_data(dataIndex))
-			return fixed
-		else:
-			return line
-	else:
-		return line
+func _data(line: String, mustache: Dictionary) -> String:
+	return line.replace(mustache.full_stache, get_specific_data(mustache.name))
 
 # AraVox shorthands: replaces instances of %"" with hard values.
-func _shorthands(line: String) -> String:
+func _shorthands(line: String, mustache: Dictionary) -> String:
+	print(mustache)
 	var fixed = line
 	if shorthands != null:
 		for i in shorthands.shorthands.size():
@@ -102,10 +107,60 @@ func _shorthands(line: String) -> String:
 
 # Helpers below...
 
+# Returns all found mustaches on a line.
+func get_all_mustaches(line: String) -> Array[Dictionary]:
+	var mustaches = []
+	
+	var remaining = line
+	var keep_searching = true
+	while keep_searching:
+		if remaining.contains("{{"):
+			var mustache = find_between(remaining, "{{", "}}")
+			mustaches.append(prepare_mustache(mustache))
+			
+			remaining = remaining.replace("{{" + mustache + "}}", "")
+		else:
+			keep_searching = false
+	return mustaches
+
+func prepare_mustache(mustache_contents: String) -> Dictionary:
+	var mustache_arr = mustache_contents.split(" ")
+	var mustache_name = mustache_arr[0]
+	var mustache_type = MustacheType.NONE
+	mustache_arr.remove_at(0)
+	
+	if mustache_name in aravox_funcs:
+		mustache_type = MustacheType.FUNCTION
+		
+	if shorthands != null: 
+		if mustache_name in shorthands.shorthands:
+			mustache_type = MustacheType.SHORTHAND
+	
+	if mustache_name.contains("$"):
+		mustache_type = MustacheType.DATA
+	
+	assert(mustache_type != MustacheType.NONE, "AraVox: Illegal mustache: \"" + mustache_name + "\". Did you perhaps forget your shorthands?")
+	
+	var mustache_dict = {
+		"type": mustache_type,
+		"name": mustache_name,
+		"vars": mustache_arr,
+		"full_stache": "{{" + mustache_contents +  "}}"
+	}
+	
+	return mustache_dict
+
+func is_this_data(maybe_data: String) -> bool:
+	var well_is_it = false
+	if maybe_data[0] == "$":
+		assert(current_data.size() > 0, "AraVox: Your function call contains data requests, but you have not supplied any data.")
+		well_is_it == true
+	return well_is_it
+
 # Returns the data with the supplied index.
-func get_specific_data(dataIndex: String) -> String:
-	assert(dataIndex[0] == "$")
-	return str(current_data[int(dataIndex.replace("$", ""))])
+func get_specific_data(data_index: String) -> String:
+	assert(current_data.size() >= int(data_index.replace("$", "")), "AraVox: You've requested data index " + data_index + " when the data_array only has " + str(current_data.size()) + " elements.")
+	return str(current_data[int(data_index.replace("$", ""))])
 
 # Returns everything between two points in a string.
 func find_between(line: String, first: String, last: String) -> String:

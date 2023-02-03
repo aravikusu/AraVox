@@ -1,4 +1,5 @@
 ## ARAVOX SCRIPT ##
 
+Aravix: One of each: Function: {{#rand Hello Hi}} Data: {{$0}} Shorthand: {{%0}}
 Aravix: This word is randomized between three options: rand{Hi|Hello|Yo}
-Aravix: This line shows data display from index 0, and makes use of the pl function: $0 pl{$0|banana|bananas}
+Aravix: This line shows data display from index 0, and makes use of the pl function: {{$0}} {{#pl $0 banana bananas}}

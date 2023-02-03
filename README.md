@@ -1,11 +1,8 @@
 # AraVox for Godot
-AraVox is an addon for Godot that helps the writers for your projects. It gives your writers access to functions and other goodies that can be written directly into the script itself and then generated through AraVox.
+AraVox is an plugin for Godot that aims to aid in writing dialogue for your game. It uses a syntax heavily inspired by [mustache](https://mustache.github.io/) to allow writers to easily write dialogue for your game.
+
+I recommend checking out the [wiki](https://github.com/aravikusu/AraVox/wiki) for more information.
 
 AraVox is made for Godot 4.
 
 This is a WIP.
-
-## Links
-- [Why AraVox?](https://github.com/aravikusu/AraVox/wiki/Why-AraVox%3F)
-- [AraVox Script Documentation](https://github.com/aravikusu/AraVox/wiki/AraVox-Script-Documentation)
-- [AraVox node reference?](https://github.com/aravikusu/AraVox/wiki/Node-reference)
