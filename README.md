@@ -5,4 +5,6 @@ I recommend checking out the [wiki](https://github.com/aravikusu/AraVox/wiki) fo
 
 AraVox is made for Godot 4.
 
-This is a WIP.
+## Currently missing features and known issues
+- Choices and branching paths
+- Lines within an if-statement don't get their mustaches validated

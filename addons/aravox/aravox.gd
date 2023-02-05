@@ -28,6 +28,9 @@ func generate(script: String, data: Array = [], shorthands_override: String = "r
 	if !shorthands_are_loaded:
 		if ResourceLoader.exists(shorthands_location):
 			shorthands = load(shorthands_location)
+			assert(shorthands.get("shorthands") != null, "Supplied shorthands resource is not of type AraVoxShorthands.")
+		else:
+			print("AraVox: Could not find shorthands resource.")
 	
 	var fixed = _prepare_script()
 	_flush()
@@ -58,11 +61,16 @@ func _prepare_script() -> Array[String]:
 									fixed_line = _rand(fixed_line, mustache)
 								"#pl":
 									fixed_line = _pl(fixed_line, mustache)
+								"#if":
+									prepared.append_array(_if(file, idx, mustache))
+									fixed_line = ""
 						MustacheType.DATA:
 							fixed_line = _data(fixed_line, mustache)
 						MustacheType.SHORTHAND:
 							fixed_line = _shorthands(fixed_line, mustache)
-				prepared.append(fixed_line)
+				
+				if fixed_line != "":
+					prepared.append(fixed_line)
 		idx += 1
 	print(prepared)
 	return prepared
@@ -90,20 +98,63 @@ func _pl(line: String, mustache: Dictionary) -> String:
 	
 	return line.replace(mustache.full_stache, choice)
 
+# AraVox if: Checks if supplied condition is truthy, then displays the correct line.
+func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Array[String]:
+	assert(mustache.vars.size() != 0, "AraVox: #if is missing variables.")
+	
+	var all = get_entire_if(all_lines, start_line)
+	
+	var is_truthy = false
+	if mustache.vars.size() > 1:
+		var value1
+		var value2
+		var operator = mustache.vars[1]
+		
+		if is_this_data(mustache.vars[0]):
+			value1 = get_specific_data(mustache.vars[0])
+		else:
+			value1 = mustache.vars[0]
+		
+		if is_this_data(mustache.vars[2]):
+			value2 = get_specific_data(mustache.vars[2])
+		else:
+			value2 = mustache.vars[2]
+		
+		match operator:
+			"==":
+				if value1 == value2: is_truthy = true
+			"!=":
+				if value1 != value2: is_truthy = true
+			">":
+				if value1 > value2: is_truthy = true
+			"<":
+				if value1 < value2: is_truthy = true
+	else:
+		if bool(int(mustache.vars[0])): is_truthy = true
+	
+	var lines = []
+	if is_truthy:
+		lines = all.if_block
+	else:
+		lines = all.else_block
+	return lines
+
 # AraVox data: replaces instances of $# with their respective data.
 func _data(line: String, mustache: Dictionary) -> String:
 	return line.replace(mustache.full_stache, get_specific_data(mustache.name))
 
 # AraVox shorthands: replaces instances of %"" with hard values.
 func _shorthands(line: String, mustache: Dictionary) -> String:
-	print(mustache)
 	var fixed = line
 	if shorthands != null:
+		var keys = shorthands.shorthands.keys()
+		var values = shorthands.shorthands.values()
 		for i in shorthands.shorthands.size():
-			var key = shorthands.keys[i]
-			var value = shorthands.values[i]
-			fixed = fixed.replace(key, value)
-	return line
+			var key = keys[i]
+			if mustache.name == key:
+				var value = values[i]
+				fixed = fixed.replace(mustache.full_stache, value)
+	return fixed
 
 # Helpers below...
 
@@ -124,16 +175,23 @@ func get_all_mustaches(line: String) -> Array[Dictionary]:
 	return mustaches
 
 func prepare_mustache(mustache_contents: String) -> Dictionary:
-	var mustache_arr = mustache_contents.split(" ")
-	var mustache_name = mustache_arr[0]
+	var mustache_name = mustache_contents.split(" ")[0]
+	var mustache_vars = mustache_contents.replace(mustache_name, "")
+	
+	var mustache_arr = []
+	for m_var in mustache_vars.split(","):
+		var variable = m_var
+		while variable.find(" ") == 0:
+			variable = variable.trim_prefix(" ")
+		mustache_arr.append(variable)
+	
 	var mustache_type = MustacheType.NONE
-	mustache_arr.remove_at(0)
 	
 	if mustache_name in aravox_funcs:
 		mustache_type = MustacheType.FUNCTION
 		
-	if shorthands != null: 
-		if mustache_name in shorthands.shorthands:
+	if shorthands != null:
+		if mustache_name in shorthands.shorthands.keys():
 			mustache_type = MustacheType.SHORTHAND
 	
 	if mustache_name.contains("$"):
@@ -150,11 +208,36 @@ func prepare_mustache(mustache_contents: String) -> Dictionary:
 	
 	return mustache_dict
 
+func get_entire_if(all_lines: FileAccess, start: int) -> Dictionary:
+	var stuff = {
+		"if_block": [],
+		"else_block": [],
+	}
+	
+	var current_idx = 0
+	var if_block = true
+	while not all_lines.eof_reached():
+		if current_idx >= start:
+			var current = all_lines.get_line()
+			
+			if current == "{#else}": 
+				if_block = false
+				continue
+			elif current =="{/if}":
+				break
+			
+			if if_block:
+				stuff.if_block.append(current)
+			else:
+				stuff.else_block.append(current)
+		current_idx += 1
+	return stuff
+
 func is_this_data(maybe_data: String) -> bool:
 	var well_is_it = false
 	if maybe_data[0] == "$":
 		assert(current_data.size() > 0, "AraVox: Your function call contains data requests, but you have not supplied any data.")
-		well_is_it == true
+		well_is_it = true
 	return well_is_it
 
 # Returns the data with the supplied index.

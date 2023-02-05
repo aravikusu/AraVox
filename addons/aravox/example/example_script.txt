@@ -1,5 +1,11 @@
 ## ARAVOX SCRIPT ##
 
-Aravix: One of each: Function: {{#rand Hello Hi}} Data: {{$0}} Shorthand: {{%0}}
-Aravix: This word is randomized between three options: rand{Hi|Hello|Yo}
-Aravix: This line shows data display from index 0, and makes use of the pl function: {{$0}} {{#pl $0 banana bananas}}
+Aravix: One of each: Function: {{#rand Hello there, Heya}}. Data: {{$0}}. Shorthand: {{%currency}}.
+{{#if $0, ==, 1}}
+Aravix: The condition was true.
+Aravix: Good job.
+{#else}
+Aravix: The condition was false.
+Aravix: Try again.
+{/if}
+Aravix: Yes.
