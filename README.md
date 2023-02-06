@@ -7,4 +7,3 @@ AraVox is made for Godot 4.
 
 ## Currently missing features and known issues
 - Choices and branching paths
-- Lines within an if-statement don't get their mustaches validated

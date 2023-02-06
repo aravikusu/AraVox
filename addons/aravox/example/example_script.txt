@@ -2,10 +2,12 @@
 
 Aravix: One of each: Function: {{#rand Hello there, Heya}}. Data: {{$0}}. Shorthand: {{%currency}}.
 {{#if $0, ==, 1}}
-Aravix: The condition was true.
-Aravix: Good job.
+Aravix: If should validate mustaches. Data: {{$0}}
+Aravix: How about an if inside an if?
+{{#if $0}}
+Aravix: You bet.
+{{/if}}
 {#else}
 Aravix: The condition was false.
-Aravix: Try again.
 {/if}
 Aravix: Yes.

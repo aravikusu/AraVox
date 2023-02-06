@@ -48,32 +48,34 @@ func _prepare_script() -> Array[String]:
 			# Basic file validation, if the file isn't a script file, error out
 			assert(line == "## ARAVOX SCRIPT ##", "AraVox: Validation header missing.")
 		else:
-			if line != "":
-				# Get every mustache found on this line
-				var mustaches = get_all_mustaches(line)
-				var fixed_line = line
-				
-				for mustache in mustaches:
-					match mustache.type:
-						MustacheType.FUNCTION:
-							match mustache.name:
-								"#rand":
-									fixed_line = _rand(fixed_line, mustache)
-								"#pl":
-									fixed_line = _pl(fixed_line, mustache)
-								"#if":
-									prepared.append_array(_if(file, idx, mustache))
-									fixed_line = ""
-						MustacheType.DATA:
-							fixed_line = _data(fixed_line, mustache)
-						MustacheType.SHORTHAND:
-							fixed_line = _shorthands(fixed_line, mustache)
-				
-				if fixed_line != "":
-					prepared.append(fixed_line)
+			mustache_replacer(line, prepared, idx, file)
 		idx += 1
 	print(prepared)
 	return prepared
+
+func mustache_replacer(line: String, prepared: Array, idx := 0, file: FileAccess = null):
+	if line != "":
+		var mustaches = get_all_mustaches(line)
+		var fixed_line = line
+		
+		for mustache in mustaches:
+			match mustache.type:
+				MustacheType.FUNCTION:
+					match mustache.name:
+							"#rand":
+								fixed_line = _rand(fixed_line, mustache)
+							"#pl":
+								fixed_line = _pl(fixed_line, mustache)
+							"#if":
+								prepared.append_array(_if(file, idx, mustache))
+								fixed_line = ""
+				MustacheType.DATA:
+					fixed_line = _data(fixed_line, mustache)
+				MustacheType.SHORTHAND:
+					fixed_line = _shorthands(fixed_line, mustache)
+		
+		if fixed_line != "":
+			prepared.append(fixed_line)
 
 # AraVox rand: Shows one of the options the ones supplied by the script.
 func _rand(line: String, mustache: Dictionary) -> String:
@@ -137,7 +139,13 @@ func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Array[
 		lines = all.if_block
 	else:
 		lines = all.else_block
-	return lines
+	
+	var fixed_lines = []
+	for line in lines:
+		if !line.contains("{{/"):
+			mustache_replacer(line, fixed_lines, start_line, all_lines)
+	
+	return fixed_lines
 
 # AraVox data: replaces instances of $# with their respective data.
 func _data(line: String, mustache: Dictionary) -> String:
