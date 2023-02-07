@@ -149,7 +149,7 @@ func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Dictio
 			"<":
 				if value1 < value2: is_truthy = true
 	else:
-		if bool(int(mustache.vars[0])): is_truthy = true
+		if bool(int(value1)): is_truthy = true
 	
 	var lines = []
 	if is_truthy:
