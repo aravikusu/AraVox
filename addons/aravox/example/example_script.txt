@@ -1,13 +1,19 @@
-## ARAVOX SCRIPT ##
-
 Aravix: One of each: Function: {{#rand Hello there, Heya}}. Data: {{$0}}. Shorthand: {{%currency}}.
 {{#if $0, ==, 1}}
 Aravix: If should validate mustaches. Data: {{$0}}
-Aravix: How about an if inside an if?
-{{#if $0}}
-Aravix: You bet.
-{{/if}}
-{#else}
+{{#else}}
 Aravix: The condition was false.
-{/if}
-Aravix: Yes.
+{{/if}}
+Aravix: What do you want?
+{{#choice Data, Nothing}}
+{{#branch}}
+Aravix: Fine: {{$0}}
+{{#if $0}}
+Aravix: If in a branch!?
+{{/if}}
+{{/branch}}
+{{#branch}}
+Aravix: Get lost then.
+{{/branch}}
+{{/choice}}
+Aravix: Text after a choice.

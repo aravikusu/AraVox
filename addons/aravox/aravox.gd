@@ -1,6 +1,6 @@
 extends Node
 
-const aravox_funcs = ["#rand","#pl", "#if"]
+const aravox_funcs = ["#rand","#pl", "#if", "#choice"]
 
 enum MustacheType {
 	FUNCTION = 0,
@@ -17,7 +17,7 @@ var shorthands_location = "res://aravox_shorthands.tres"
 var shorthands = null
 var shorthands_are_loaded = false
 
-func generate(script: String, data: Array = [], shorthands_override: String = "res://aravox_shorthands.tres") -> Array[String]:
+func generate(script: String, data: Array = [], shorthands_override: String = "res://aravox_shorthands.tres") -> Dictionary:
 	script_file = script
 	current_data = data
 	
@@ -32,33 +32,39 @@ func generate(script: String, data: Array = [], shorthands_override: String = "r
 		else:
 			print("AraVox: Could not find shorthands resource.")
 	
-	var fixed = _prepare_script()
+	var res = _prepare_script()
 	_flush()
-	return fixed
+	return res
 
 # Loads the script file and starts preparing it for the in-game textboxes.
-func _prepare_script() -> Array[String]:
+func _prepare_script() -> Dictionary:
 	var file = FileAccess.open(script_file, FileAccess.READ)
+	var prepared := {
+		"script": [],
+		"choices": []
+	}
 	
-	var prepared := []
 	var idx := 0
 	while not file.eof_reached():
 		var line = file.get_line()
-		if idx == 0:
-			# Basic file validation, if the file isn't a script file, error out
-			assert(line == "## ARAVOX SCRIPT ##", "AraVox: Validation header missing.")
-		else:
-			mustache_replacer(line, prepared, idx, file)
+		var fixed = mustache_replacer(line, idx, file)
+		prepared.script.append_array(fixed.script)
+		prepared.choices.append_array(fixed.choices)
 		idx += 1
 	print(prepared)
 	return prepared
 
-func mustache_replacer(line: String, prepared: Array, idx := 0, file: FileAccess = null):
+func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null) -> Dictionary:
+	var new_things = {
+		"script": [],
+		"choices": []
+	}
+	
 	if line != "":
 		var mustaches = get_all_mustaches(line)
 		var fixed_line = line
-		
 		for mustache in mustaches:
+			var result = null
 			match mustache.type:
 				MustacheType.FUNCTION:
 					match mustache.name:
@@ -67,15 +73,23 @@ func mustache_replacer(line: String, prepared: Array, idx := 0, file: FileAccess
 							"#pl":
 								fixed_line = _pl(fixed_line, mustache)
 							"#if":
-								prepared.append_array(_if(file, idx, mustache))
+								result = _if(file, idx, mustache)
+								fixed_line = ""
+							"#choice":
+								result = _choice(file, idx, mustache)
 								fixed_line = ""
 				MustacheType.DATA:
 					fixed_line = _data(fixed_line, mustache)
 				MustacheType.SHORTHAND:
 					fixed_line = _shorthands(fixed_line, mustache)
+			
+			if result != null:
+				new_things.script.append_array(result.script)
+				new_things.choices.append_array(result.choices)
 		
 		if fixed_line != "":
-			prepared.append(fixed_line)
+			new_things.script.append(fixed_line)
+	return new_things
 
 # AraVox rand: Shows one of the options the ones supplied by the script.
 func _rand(line: String, mustache: Dictionary) -> String:
@@ -101,21 +115,24 @@ func _pl(line: String, mustache: Dictionary) -> String:
 	return line.replace(mustache.full_stache, choice)
 
 # AraVox if: Checks if supplied condition is truthy, then displays the correct line.
-func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Array[String]:
+func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Dictionary:
 	assert(mustache.vars.size() != 0, "AraVox: #if is missing variables.")
+	var new_things = {
+		"script": [],
+		"choices": []
+	}
 	
-	var all = get_entire_if(all_lines, start_line)
+	var all = get_entire_if(all_lines)
+	var value1
+	if is_this_data(mustache.vars[0]):
+		value1 = get_specific_data(mustache.vars[0])
+	else:
+		value1 = mustache.vars[0]
 	
 	var is_truthy = false
 	if mustache.vars.size() > 1:
-		var value1
 		var value2
 		var operator = mustache.vars[1]
-		
-		if is_this_data(mustache.vars[0]):
-			value1 = get_specific_data(mustache.vars[0])
-		else:
-			value1 = mustache.vars[0]
 		
 		if is_this_data(mustache.vars[2]):
 			value2 = get_specific_data(mustache.vars[2])
@@ -140,12 +157,29 @@ func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Array[
 	else:
 		lines = all.else_block
 	
-	var fixed_lines = []
 	for line in lines:
-		if !line.contains("{{/"):
-			mustache_replacer(line, fixed_lines, start_line, all_lines)
+		var fixed = mustache_replacer(line, start_line, all_lines)
+		new_things.script.append_array(fixed.script)
+		new_things.choices.append_array(fixed.choices)
 	
-	return fixed_lines
+	return new_things
+
+func _choice(all_lines: FileAccess, line_number: int, mustache: Dictionary) -> Dictionary:
+	assert(mustache.vars.size() != 0, "AraVox: #choice needs to have at least one choice.")
+	var new_things = {
+		"script": [],
+		"choices": []
+	}
+	var all = get_entire_choice(all_lines, line_number)
+	
+	var stuff = {
+		"options": mustache.vars,
+		"branches": all,
+		"appears_on": line_number
+	}
+	new_things.choices.append(stuff)
+	
+	return new_things
 
 # AraVox data: replaces instances of $# with their respective data.
 func _data(line: String, mustache: Dictionary) -> String:
@@ -172,18 +206,23 @@ func get_all_mustaches(line: String) -> Array[Dictionary]:
 	
 	var remaining = line
 	var keep_searching = true
+	var idx = 0
 	while keep_searching:
 		if remaining.contains("{{"):
+			assert(idx != 1000, "AraVox: Unable to find closing mustache for line: " + remaining + " after 1000 iterations. Ceasing operation; check for broken mustaches.")
 			var mustache = find_between(remaining, "{{", "}}")
+			
 			mustaches.append(prepare_mustache(mustache))
 			
 			remaining = remaining.replace("{{" + mustache + "}}", "")
 		else:
 			keep_searching = false
+		idx += 1
 	return mustaches
 
 func prepare_mustache(mustache_contents: String) -> Dictionary:
 	var mustache_name = mustache_contents.split(" ")[0]
+	
 	var mustache_vars = mustache_contents.replace(mustache_name, "")
 	
 	var mustache_arr = []
@@ -216,7 +255,8 @@ func prepare_mustache(mustache_contents: String) -> Dictionary:
 	
 	return mustache_dict
 
-func get_entire_if(all_lines: FileAccess, start: int) -> Dictionary:
+# Iterate through the entire #if block and return it in a nice dictionary.
+func get_entire_if(all_lines: FileAccess) -> Dictionary:
 	var stuff = {
 		"if_block": [],
 		"else_block": [],
@@ -224,22 +264,48 @@ func get_entire_if(all_lines: FileAccess, start: int) -> Dictionary:
 	
 	var current_idx = 0
 	var if_block = true
+	var found_end = false
 	while not all_lines.eof_reached():
-		if current_idx >= start:
-			var current = all_lines.get_line()
-			
-			if current == "{#else}": 
-				if_block = false
-				continue
-			elif current =="{/if}":
-				break
-			
-			if if_block:
-				stuff.if_block.append(current)
-			else:
-				stuff.else_block.append(current)
-		current_idx += 1
+		var current = all_lines.get_line()
+		if current == "{{#else}}": 
+			if_block = false
+			continue
+		elif current =="{{/if}}":
+			found_end = true
+			break
+		
+		if if_block:
+			stuff.if_block.append(current)
+		else:
+			stuff.else_block.append(current)
+	
+	assert(found_end, "AraVox: {{#if}} used but could not find matching {{/if}}. Error thrown as this will very likely break your script.")
+	
 	return stuff
+
+# Similar to the #if version, but this time returns all the branches.
+func get_entire_choice(all_lines: FileAccess, line_number: int) -> Array:
+	var branches = []
+	
+	var current_branch = []
+	var found_end = false
+	while not all_lines.eof_reached():
+		var current = all_lines.get_line()
+		if current == "{{#branch}}":
+			continue
+		elif current == "{{/branch}}":
+			branches.append(current_branch)
+			current_branch = []
+			continue
+		elif current == "{{/choice}}":
+			found_end = true
+			break
+		
+		var fixed = mustache_replacer(current, line_number, all_lines)
+		if fixed.script.size() > 0:
+			current_branch.append_array(fixed.script)
+	assert(found_end, "AraVox: {{#choice}} used but could not find matching {{/choice}}. Error thrown as this will very likely break your script.")
+	return branches
 
 func is_this_data(maybe_data: String) -> bool:
 	var well_is_it = false
