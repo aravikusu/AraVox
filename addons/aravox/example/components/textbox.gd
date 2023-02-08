@@ -14,6 +14,10 @@ var current_choice = {}
 var choice_labels = []
 var choice_idx = 0
 
+var currently_in_branch = -1
+var branch_length = 0
+var current_line_in_branch = 0
+
 var start = false
 
 @onready var choicebox = $"%ChoiceBox"
@@ -54,6 +58,9 @@ func _process(_delta):
 func advance_line():
 	current_line += 1
 	
+	if current_line_in_branch < branch_length:
+		current_line_in_branch += 1
+	
 	if current_line < dialogue_script.size():
 		var line = dialogue_script[current_line]
 		var split = line.split(":")
@@ -63,14 +70,25 @@ func advance_line():
 	else:
 		name_label.text = ""
 		text_box_content.text = "SCRIPT END"
+	
+	if current_line_in_branch == branch_length:
+		current_line_in_branch = 0
+		branch_length = 0
+		currently_in_branch = -1
 
 func check_choices():
 	if dialogue_choices.size() > 0:
 		for choice in dialogue_choices:
 			if choice.appears_on == current_line + 1:
-				choices_are_being_made = true
-				current_choice = choice
-				fill_choices()
+				var go = true
+				if currently_in_branch != -1:
+					if currently_in_branch != choice.appears_in_branch:
+						go = false
+				
+				if go:
+					choices_are_being_made = true
+					current_choice = choice
+					fill_choices()
 
 func fill_choices():
 	for choice in current_choice.options:
@@ -85,6 +103,8 @@ func make_choice():
 	if choice_idx < current_choice.branches.size():
 		var chosen = current_choice.branches[choice_idx]
 		dialogue_script.append_array(chosen)
+		currently_in_branch = choice_idx
+		branch_length = chosen.size()
 	
 	choices_are_being_made = false
 	current_choice = {}
