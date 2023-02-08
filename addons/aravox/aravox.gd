@@ -51,15 +51,16 @@ func _prepare_script() -> Dictionary:
 		prepared.script.append_array(fixed.script)
 		prepared.choices.append_array(fixed.choices)
 		idx += 1
-	print(prepared)
+	
 	return prepared
 
-func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null) -> Dictionary:
+func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, increment_idx: int = 0) -> Dictionary:
 	var new_things = {
 		"script": [],
 		"choices": []
 	}
 	
+	var actual_idx = idx + increment_idx
 	if line != "":
 		var mustaches = get_all_mustaches(line)
 		var fixed_line = line
@@ -73,10 +74,10 @@ func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null) -> D
 							"#pl":
 								fixed_line = _pl(fixed_line, mustache)
 							"#if":
-								result = _if(file, idx, mustache)
+								result = _if(file, actual_idx, mustache)
 								fixed_line = ""
 							"#choice":
-								result = _choice(file, idx, mustache)
+								result = _choice(file, actual_idx, mustache)
 								fixed_line = ""
 				MustacheType.DATA:
 					fixed_line = _data(fixed_line, mustache)
@@ -157,10 +158,12 @@ func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Dictio
 	else:
 		lines = all.else_block
 	
+	var idx = 0
 	for line in lines:
-		var fixed = mustache_replacer(line, start_line, all_lines)
+		var fixed = mustache_replacer(line, start_line, all_lines, idx)
 		new_things.script.append_array(fixed.script)
 		new_things.choices.append_array(fixed.choices)
+		idx += 1
 	
 	return new_things
 
@@ -171,14 +174,25 @@ func _choice(all_lines: FileAccess, line_number: int, mustache: Dictionary) -> D
 		"choices": []
 	}
 	var all = get_entire_choice(all_lines, line_number)
+	var branches = []
+	for branch in all:
+		branches.append(branch.branch)
+		if branch.choices.size() > 0:
+			var idx = 0
+			var fixed = []
+			for choice in branch.choices:
+				var temp = choice
+				temp.appears_in_branch = idx
+				fixed.append(temp)
+			new_things.choices.append_array(fixed)
 	
 	var stuff = {
 		"options": mustache.vars,
-		"branches": all,
-		"appears_on": line_number
+		"branches": branches,
+		"appears_on": line_number,
+		"appears_in_branch": -1
 	}
 	new_things.choices.append(stuff)
-	
 	return new_things
 
 # AraVox data: replaces instances of $# with their respective data.
@@ -262,7 +276,6 @@ func get_entire_if(all_lines: FileAccess) -> Dictionary:
 		"else_block": [],
 	}
 	
-	var current_idx = 0
 	var if_block = true
 	var found_end = false
 	while not all_lines.eof_reached():
@@ -287,24 +300,38 @@ func get_entire_if(all_lines: FileAccess) -> Dictionary:
 func get_entire_choice(all_lines: FileAccess, line_number: int) -> Array:
 	var branches = []
 	
-	var current_branch = []
+	var current_branch = {
+		"branch": [],
+		"choices": []
+	}
 	var found_end = false
+	var idx = 0
 	while not all_lines.eof_reached():
 		var current = all_lines.get_line()
 		if current == "{{#branch}}":
 			continue
 		elif current == "{{/branch}}":
 			branches.append(current_branch)
-			current_branch = []
+			current_branch = {
+				"branch": [],
+				"choices": []
+			}
+			idx = 0
 			continue
 		elif current == "{{/choice}}":
 			found_end = true
 			break
 		
-		var fixed = mustache_replacer(current, line_number, all_lines)
+		var fixed = mustache_replacer(current, line_number, all_lines, idx)
 		if fixed.script.size() > 0:
-			current_branch.append_array(fixed.script)
+			current_branch.branch.append_array(fixed.script)
+			idx += 1
+		
+		if fixed.choices.size() > 0:
+			current_branch.choices.append_array(fixed.choices)
+			idx += 1
 	assert(found_end, "AraVox: {{#choice}} used but could not find matching {{/choice}}. Error thrown as this will very likely break your script.")
+	
 	return branches
 
 func is_this_data(maybe_data: String) -> bool:

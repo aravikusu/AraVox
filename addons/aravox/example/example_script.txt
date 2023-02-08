@@ -8,9 +8,12 @@ Aravix: What do you want?
 {{#choice Data, Nothing}}
 {{#branch}}
 Aravix: Fine: {{$0}}
-{{#if $0}}
-Aravix: If in a branch!?
-{{/if}}
+Aravix: You good, then?
+{{#choice PLEASE}}
+{{#branch}}
+Aravix: AAAAAAAAAAAAAA
+{{/branch}}
+{{/choice}}
 {{/branch}}
 {{#branch}}
 Aravix: Get lost then.
