@@ -1,22 +1,20 @@
-Aravix: One of each: Function: {{#rand Hello there, Heya}}. Data: {{$0}}. Shorthand: {{%currency}}.
-{{#if $0, ==, 1}}
-Aravix: If should validate mustaches. Data: {{$0}}
+Aravix: This is an example AraVox script.
+Someone: {{#rand Hey, Yo}}!
+Guard: ...Password?
+{{#choice Banana, Password}}
+{{#branch}}
+Guard: Go away.
+Someone: Dang.
+{{/branch}}
+{{#branch}}
+Guard: Hmm... well, it's the right password. Don't recognize you, though. Let me see your membership card.
+{{#if $0}}
+Someone: Sure, here you go.
+Guard: Everything checks out. You're free to go in.
+Someone: Thanks.
 {{#else}}
-Aravix: The condition was false.
+Someone: I must have forgotten it at home.
+Guard: No card, no entry.
 {{/if}}
-Aravix: What do you want?
-{{#choice Data, Nothing}}
-{{#branch}}
-Aravix: Fine: {{$0}}
-Aravix: You good, then?
-{{#choice PLEASE}}
-{{#branch}}
-Aravix: AAAAAAAAAAAAAA
 {{/branch}}
 {{/choice}}
-{{/branch}}
-{{#branch}}
-Aravix: Get lost then.
-{{/branch}}
-{{/choice}}
-Aravix: Text after a choice.

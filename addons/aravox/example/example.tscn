@@ -1,8 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://0wsg80me0cgj"]
+[gd_scene load_steps=4 format=3 uid="uid://cqkxsh8411a5g"]
 
 [ext_resource type="Script" path="res://addons/aravox/example/example.gd" id="1_0bxnb"]
 [ext_resource type="Script" path="res://addons/aravox/aravox_controller.gd" id="1_oc5na"]
-[ext_resource type="Script" path="res://addons/aravox/aravox_textbox.gd" id="3_ioci0"]
+[ext_resource type="Script" path="res://addons/aravox/example/components/textbox.gd" id="3_mqgo1"]
 
 [node name="Example" type="Control"]
 layout_mode = 3
@@ -22,7 +22,7 @@ dialogue_file = "res://addons/aravox/example/example_script.txt"
 dialogue_data = [1]
 shorthands_override = "addons/aravox/example/"
 
-[node name="AraVoxTextbox" type="MarginContainer" parent="."]
+[node name="Textbox" type="MarginContainer" parent="." node_paths=PackedStringArray("name_label", "text_box_content")]
 custom_minimum_size = Vector2(0, 400)
 layout_mode = 1
 anchors_preset = 12
@@ -31,36 +31,62 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 0
-script = ExtResource("3_ioci0")
+script = ExtResource("3_mqgo1")
+name_label = NodePath("VBoxContainer/HBoxContainer/VBoxContainer/NameDisplay/MarginContainer/NameLabel")
+text_box_content = NodePath("VBoxContainer/TextBox/MarginContainer/TextBoxContent")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="AraVoxTextbox"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Textbox"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="AraVoxTextbox/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Textbox/VBoxContainer"]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="AraVoxTextbox/VBoxContainer/HBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Textbox/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 alignment = 2
 
-[node name="NameDisplay" type="PanelContainer" parent="AraVoxTextbox/VBoxContainer/HBoxContainer/VBoxContainer"]
+[node name="NameDisplay" type="PanelContainer" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer"]
 custom_minimum_size = Vector2(150, 35)
 layout_mode = 2
 
-[node name="HighTechSpacer" type="Label" parent="AraVoxTextbox/VBoxContainer/HBoxContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer/NameDisplay"]
+layout_mode = 2
+theme_override_constants/margin_top = 5
+
+[node name="NameLabel" type="RichTextLabel" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer/NameDisplay/MarginContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "[center]Name"
+
+[node name="HighTechSpacer" type="Label" parent="Textbox/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ChoiceBox" type="PanelContainer" parent="AraVoxTextbox/VBoxContainer/HBoxContainer"]
+[node name="ChoiceBox" type="PanelContainer" parent="Textbox/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 
-[node name="TextBox" type="PanelContainer" parent="AraVoxTextbox/VBoxContainer"]
+[node name="ChoiceList" type="VBoxContainer" parent="Textbox/VBoxContainer/HBoxContainer/ChoiceBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TextBox" type="PanelContainer" parent="Textbox/VBoxContainer"]
 custom_minimum_size = Vector2(0, 250)
 layout_mode = 2
 
-[node name="TextBoxContent" type="RichTextLabel" parent="AraVoxTextbox/VBoxContainer/TextBox"]
+[node name="MarginContainer" type="MarginContainer" parent="Textbox/VBoxContainer/TextBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="TextBoxContent" type="RichTextLabel" parent="Textbox/VBoxContainer/TextBox/MarginContainer"]
 layout_mode = 2
 bbcode_enabled = true
+text = "This is where all the text goes..."
+
+[connection signal="script_generation_finished" from="AraVoxController" to="Textbox" method="_on_ara_vox_controller_script_generation_finished"]

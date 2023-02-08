@@ -108,7 +108,7 @@ func _pl(line: String, mustache: Dictionary) -> String:
 	if is_this_data(mustache.vars[0]):
 		num = get_specific_data(mustache.vars[0])
 	
-	if num == 1:
+	if int(num) == 1:
 		choice = mustache.vars[1]
 	else:
 		choice = mustache.vars[2]

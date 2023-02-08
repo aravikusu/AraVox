@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3 uid="uid://bj25pw2c5dc6q"]
+
+[ext_resource type="Script" path="res://addons/aravox/example/components/ChoiceLabel.gd" id="1_1315x"]
+
+[node name="ChoiceLabel" type="MarginContainer"]
+offset_right = 200.0
+offset_bottom = 30.0
+script = ExtResource("1_1315x")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "choice"
+horizontal_alignment = 1

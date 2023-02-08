@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7ma1w6jgws1u"
-path="res://.godot/imported/icon.png-b97fde8594b02d083b122682246d918d.ctex"
+uid="uid://d063rfmc0vfue"
+path="res://.godot/imported/icon.png-1f40489d2f75d91638d5be814b7573cd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/aravox/icon.png"
-dest_files=["res://.godot/imported/icon.png-b97fde8594b02d083b122682246d918d.ctex"]
+source_file="res://addons/aravox/assets/icon.png"
+dest_files=["res://.godot/imported/icon.png-1f40489d2f75d91638d5be814b7573cd.ctex"]
 
 [params]
 

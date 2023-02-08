@@ -1,6 +1,6 @@
 extends Control
 
-signal script_generation_finished(script: Array[String])
+signal script_generation_finished(script: Dictionary)
 
 ## The script file that this AraVoxController should handle.
 @export_file("*.txt, *.ara") var dialogue_file
@@ -17,3 +17,4 @@ func generate():
 	if shorthands_override == "":
 		shorthands_override = "res://aravox_shorthands.tres"
 	var dialogue = AraVox.generate(dialogue_file, dialogue_data, shorthands_override)
+	emit_signal("script_generation_finished", dialogue)
