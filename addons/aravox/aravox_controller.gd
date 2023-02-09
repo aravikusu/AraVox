@@ -3,7 +3,7 @@ extends Control
 signal script_generation_finished(script: Dictionary)
 
 ## The script file that this AraVoxController should handle.
-@export_file("*.txt, *.ara") var dialogue_file
+@export_file("*.txt") var dialogue_file
 ## The data that should be supplied to this script.
 @export var dialogue_data := []
 
