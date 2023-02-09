@@ -216,7 +216,7 @@ func _shorthands(line: String, mustache: Dictionary) -> String:
 
 # Returns all found mustaches on a line.
 func get_all_mustaches(line: String) -> Array[Dictionary]:
-	var mustaches = []
+	var mustaches : Array[Dictionary]
 	
 	var remaining = line
 	var keep_searching = true

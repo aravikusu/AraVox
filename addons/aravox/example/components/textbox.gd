@@ -5,8 +5,8 @@ extends MarginContainer
 ## The RichTextLabel that you want AraVox to plug text into.
 @export var text_box_content : RichTextLabel
 
-var dialogue_script : Array[String] = []
-var dialogue_choices : Array[Dictionary] = []
+var dialogue_script = []
+var dialogue_choices = []
 var current_line := -1
 
 var choices_are_being_made = false
