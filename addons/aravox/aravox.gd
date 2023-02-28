@@ -52,6 +52,7 @@ func _prepare_script() -> Dictionary:
 		prepared.choices.append_array(fixed.choices)
 		idx += 1
 	
+	file.close()
 	return prepared
 
 func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, increment_idx: int = 0) -> Dictionary:
