@@ -1,23 +1,16 @@
 extends Node
 
-const aravox_funcs = ["#rand","#pl", "#if", "#choice"]
+const aravox_funcs: Array[String] = ["#rand","#pl", "#if", "#choice"]
 
-enum MustacheType {
-	FUNCTION = 0,
-	DATA = 1,
-	SHORTHAND = 2,
-	NONE = 99
-}
+var script_file: String = ""
+var current_data: Array = []
 
-var script_file = null
-var current_data = []
+var shorthands_location: String = "res://aravox_shorthands.tres"
 
-var shorthands_location = "res://aravox_shorthands.tres"
+var shorthands: AraVoxShorthands = null
+var shorthands_are_loaded: bool = false
 
-var shorthands = null
-var shorthands_are_loaded = false
-
-func generate(script: String, data: Array = [], shorthands_override: String = "res://aravox_shorthands.tres") -> Dictionary:
+func generate(script: String, data: Array = [], shorthands_override: String = "res://aravox_shorthands.tres") -> AraVoxScript:
 	script_file = script
 	current_data = data
 	
@@ -32,43 +25,37 @@ func generate(script: String, data: Array = [], shorthands_override: String = "r
 		else:
 			print("AraVox: Could not find shorthands resource.")
 	
-	var res = _prepare_script()
+	var res: AraVoxScript = _prepare_script()
 	_flush()
 	return res
 
 # Loads the script file and starts preparing it for the in-game textboxes.
-func _prepare_script() -> Dictionary:
-	var file = FileAccess.open(script_file, FileAccess.READ)
-	var prepared := {
-		"script": [],
-		"choices": []
-	}
+func _prepare_script() -> AraVoxScript:
+	var file: FileAccess = FileAccess.open(script_file, FileAccess.READ)
+	var prepared: AraVoxScript = AraVoxScript.new()
 	
-	var idx := 0
+	var idx: int = 0
 	while not file.eof_reached():
-		var line = file.get_line()
-		var fixed = mustache_replacer(line, idx, file)
-		prepared.script.append_array(fixed.script)
+		var line: String = file.get_line()
+		var fixed: AraVoxScript = mustache_replacer(line, idx, file)
+		prepared._script.append_array(fixed._script)
 		prepared.choices.append_array(fixed.choices)
 		idx += 1
 	
 	file.close()
 	return prepared
 
-func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, increment_idx: int = 0) -> Dictionary:
-	var new_things = {
-		"script": [],
-		"choices": []
-	}
+func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, increment_idx: int = 0) -> AraVoxScript:
+	var new_things: AraVoxScript = AraVoxScript.new()
 	
-	var actual_idx = idx + increment_idx
+	var actual_idx: int = idx + increment_idx
 	if line != "":
-		var mustaches = get_all_mustaches(line)
-		var fixed_line = line
-		for mustache in mustaches:
+		var mustaches: Array[AraVoxMustache] = get_all_mustaches(line)
+		var fixed_line: String = line
+		for mustache: AraVoxMustache in mustaches:
 			var result = null
 			match mustache.type:
-				MustacheType.FUNCTION:
+				AraVoxMustache.MustacheType.FUNCTION:
 					match mustache.name:
 							"#rand":
 								fixed_line = _rand(fixed_line, mustache)
@@ -80,21 +67,21 @@ func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, incr
 							"#choice":
 								result = _choice(file, actual_idx, mustache)
 								fixed_line = ""
-				MustacheType.DATA:
+				AraVoxMustache.MustacheType.DATA:
 					fixed_line = _data(fixed_line, mustache)
-				MustacheType.SHORTHAND:
+				AraVoxMustache.MustacheType.SHORTHAND:
 					fixed_line = _shorthands(fixed_line, mustache)
 			
 			if result != null:
-				new_things.script.append_array(result.script)
+				new_things._script.append_array(result._script)
 				new_things.choices.append_array(result.choices)
 		
 		if fixed_line != "":
-			new_things.script.append(fixed_line)
+			new_things._script.append(fixed_line)
 	return new_things
 
 # AraVox rand: Shows one of the options the ones supplied by the script.
-func _rand(line: String, mustache: Dictionary) -> String:
+func _rand(line: String, mustache: AraVoxMustache) -> String:
 	var rnd = RandomNumberGenerator.new()
 	rnd.randomize()
 	
@@ -102,7 +89,7 @@ func _rand(line: String, mustache: Dictionary) -> String:
 	return line.replace(mustache.full_stache, choice)
 
 # AraVox pl: Takes an int and then selects one of the two supplied words.
-func _pl(line: String, mustache: Dictionary) -> String:
+func _pl(line: String, mustache: AraVoxMustache) -> String:
 	var num = 0
 	var choice = ""
 	
@@ -117,12 +104,9 @@ func _pl(line: String, mustache: Dictionary) -> String:
 	return line.replace(mustache.full_stache, choice)
 
 # AraVox if: Checks if supplied condition is truthy, then displays the correct line.
-func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Dictionary:
+func _if(all_lines: FileAccess, start_line: int, mustache: AraVoxMustache) -> AraVoxScript:
 	assert(mustache.vars.size() != 0, "AraVox: #if is missing variables.")
-	var new_things = {
-		"script": [],
-		"choices": []
-	}
+	var new_things: AraVoxScript = AraVoxScript.new()
 	
 	var all = get_entire_if(all_lines)
 	var value1
@@ -162,46 +146,44 @@ func _if(all_lines: FileAccess, start_line: int, mustache: Dictionary) -> Dictio
 	var idx = 0
 	for line in lines:
 		var fixed = mustache_replacer(line, start_line, all_lines, idx)
-		new_things.script.append_array(fixed.script)
+		new_things._script.append_array(fixed._script)
 		new_things.choices.append_array(fixed.choices)
 		idx += 1
 	
 	return new_things
 
-func _choice(all_lines: FileAccess, line_number: int, mustache: Dictionary) -> Dictionary:
+func _choice(all_lines: FileAccess, line_number: int, mustache: AraVoxMustache) -> AraVoxScript:
 	assert(mustache.vars.size() != 0, "AraVox: #choice needs to have at least one choice.")
-	var new_things = {
-		"script": [],
-		"choices": []
-	}
-	var all = get_entire_choice(all_lines, line_number)
-	var branches = []
-	for branch in all:
+	var new_things: AraVoxScript = AraVoxScript.new()
+
+	var all: Array[AraVoxBranch] = get_entire_choice(all_lines, line_number)
+	var branches: Array = []
+	for branch: AraVoxBranch in all:
 		branches.append(branch.branch)
 		if branch.choices.size() > 0:
-			var idx = 0
+			var idx: int = 0
 			var fixed = []
-			for choice in branch.choices:
-				var temp = choice
+			for choice: AraVoxChoice in branch.choices:
+				var temp: AraVoxChoice = choice
 				temp.appears_in_branch = idx
 				fixed.append(temp)
 			new_things.choices.append_array(fixed)
 	
-	var stuff = {
-		"options": mustache.vars,
-		"branches": branches,
-		"appears_on": line_number,
-		"appears_in_branch": -1
-	}
+	var stuff: AraVoxChoice = AraVoxChoice.new()
+	stuff.options = mustache.vars
+	stuff.branches = branches
+	stuff.appears_on = line_number
+	stuff.appears_in_branch = -1
+	
 	new_things.choices.append(stuff)
 	return new_things
 
 # AraVox data: replaces instances of $# with their respective data.
-func _data(line: String, mustache: Dictionary) -> String:
+func _data(line: String, mustache: AraVoxMustache) -> String:
 	return line.replace(mustache.full_stache, get_specific_data(mustache.name))
 
 # AraVox shorthands: replaces instances of %"" with hard values.
-func _shorthands(line: String, mustache: Dictionary) -> String:
+func _shorthands(line: String, mustache: AraVoxMustache) -> String:
 	var fixed = line
 	if shorthands != null:
 		var keys = shorthands.shorthands.keys()
@@ -216,8 +198,8 @@ func _shorthands(line: String, mustache: Dictionary) -> String:
 # Helpers below...
 
 # Returns all found mustaches on a line.
-func get_all_mustaches(line: String) -> Array[Dictionary]:
-	var mustaches : Array[Dictionary]
+func get_all_mustaches(line: String) -> Array[AraVoxMustache]:
+	var mustaches : Array[AraVoxMustache]
 	
 	var remaining = line
 	var keep_searching = true
@@ -235,40 +217,39 @@ func get_all_mustaches(line: String) -> Array[Dictionary]:
 		idx += 1
 	return mustaches
 
-func prepare_mustache(mustache_contents: String) -> Dictionary:
-	var mustache_name = mustache_contents.split(" ")[0]
+func prepare_mustache(mustache_contents: String) -> AraVoxMustache:
+	var mustache_name: String = mustache_contents.split(" ")[0]
 	
-	var mustache_vars = mustache_contents.replace(mustache_name, "")
+	var mustache_vars: String = mustache_contents.replace(mustache_name, "")
 	
-	var mustache_arr = []
-	for m_var in mustache_vars.split(","):
-		var variable = m_var
+	var mustache_arr: Array[String] = []
+	for m_var: String in mustache_vars.split(","):
+		var variable: String = m_var
 		while variable.find(" ") == 0:
 			variable = variable.trim_prefix(" ")
 		mustache_arr.append(variable)
 	
-	var mustache_type = MustacheType.NONE
+	var mustache_type: AraVoxMustache.MustacheType = AraVoxMustache.MustacheType.NONE
 	
 	if mustache_name in aravox_funcs:
-		mustache_type = MustacheType.FUNCTION
+		mustache_type = AraVoxMustache.MustacheType.FUNCTION
 		
 	if shorthands != null:
 		if mustache_name in shorthands.shorthands.keys():
-			mustache_type = MustacheType.SHORTHAND
+			mustache_type = AraVoxMustache.MustacheType.SHORTHAND
 	
 	if mustache_name.contains("$"):
-		mustache_type = MustacheType.DATA
+		mustache_type = AraVoxMustache.MustacheType.DATA
 	
-	assert(mustache_type != MustacheType.NONE, "AraVox: Illegal mustache: \"" + mustache_name + "\". Did you perhaps forget your shorthands?")
+	assert(mustache_type != AraVoxMustache.MustacheType.NONE, "AraVox: Illegal mustache: \"" + mustache_name + "\". Did you perhaps forget your shorthands?")
 	
-	var mustache_dict = {
-		"type": mustache_type,
-		"name": mustache_name,
-		"vars": mustache_arr,
-		"full_stache": "{{" + mustache_contents +  "}}"
-	}
+	var mustache: AraVoxMustache = AraVoxMustache.new()
+	mustache.type = mustache_type
+	mustache.name = mustache_name
+	mustache.vars = mustache_arr
+	mustache.full_stache = "{{" + mustache_contents +  "}}"
 	
-	return mustache_dict
+	return mustache
 
 # Iterate through the entire #if block and return it in a nice dictionary.
 func get_entire_if(all_lines: FileAccess) -> Dictionary:
@@ -298,25 +279,19 @@ func get_entire_if(all_lines: FileAccess) -> Dictionary:
 	return stuff
 
 # Similar to the #if version, but this time returns all the branches.
-func get_entire_choice(all_lines: FileAccess, line_number: int) -> Array:
-	var branches = []
+func get_entire_choice(all_lines: FileAccess, line_number: int) -> Array[AraVoxBranch]:
+	var branches: Array[AraVoxBranch] = []
 	
-	var current_branch = {
-		"branch": [],
-		"choices": []
-	}
-	var found_end = false
-	var idx = 0
+	var current_branch: AraVoxBranch = AraVoxBranch.new()
+	var found_end: bool = false
+	var idx: int = 0
 	while not all_lines.eof_reached():
-		var current = all_lines.get_line()
+		var current: String = all_lines.get_line()
 		if current == "{{#branch}}":
 			continue
 		elif current == "{{/branch}}":
 			branches.append(current_branch)
-			current_branch = {
-				"branch": [],
-				"choices": []
-			}
+			current_branch = AraVoxBranch.new()
 			idx = 0
 			continue
 		elif current == "{{/choice}}":
@@ -324,8 +299,8 @@ func get_entire_choice(all_lines: FileAccess, line_number: int) -> Array:
 			break
 		
 		var fixed = mustache_replacer(current, line_number, all_lines, idx)
-		if fixed.script.size() > 0:
-			current_branch.branch.append_array(fixed.script)
+		if fixed._script.size() > 0:
+			current_branch.branch.append_array(fixed._script)
 			idx += 1
 		
 		if fixed.choices.size() > 0:
@@ -351,6 +326,6 @@ func get_specific_data(data_index: String) -> String:
 func find_between(line: String, first: String, last: String) -> String:
 	return(line.split(first))[1].split(last)[0]
 
-func _flush():
-	script_file = null
+func _flush() -> void:
+	script_file = ""
 	current_data = []
