@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AraVoxConfig" load_steps=3 format=3 uid="uid://bgmfm3uctbq72"]
+
+[ext_resource type="Script" path="res://addons/aravox/scripts/aravox_config.gd" id="1_6md0p"]
+[ext_resource type="Resource" uid="uid://l0a6dpeg6tkc" path="res://addons/aravox/example/example_actions.tres" id="1_tw2bo"]
+
+[resource]
+script = ExtResource("1_6md0p")
+shorthands = {
+"%currency": "souls"
+}
+actions = ExtResource("1_tw2bo")

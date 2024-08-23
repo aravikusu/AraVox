@@ -3,3 +3,4 @@ class_name AraVoxScript extends Resource
 
 var _script: Array[String] = []
 var choices: Array[AraVoxChoice] = []
+var actions: Array[AraVoxAction] = []

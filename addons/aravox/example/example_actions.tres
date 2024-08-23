@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="ExampleActions" load_steps=2 format=3 uid="uid://l0a6dpeg6tkc"]
+
+[ext_resource type="Script" path="res://addons/aravox/example/example_actions.gd" id="1_5cmad"]
+
+[resource]
+script = ExtResource("1_5cmad")

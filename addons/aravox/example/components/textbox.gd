@@ -57,6 +57,8 @@ func _process(_delta: float) -> void:
 func advance_line() -> void:
 	current_line += 1
 	
+	check_actions()
+	
 	if current_line_in_branch < branch_length:
 		current_line_in_branch += 1
 	
@@ -74,6 +76,11 @@ func advance_line() -> void:
 		current_line_in_branch = 0
 		branch_length = 0
 		currently_in_branch = -1
+
+func check_actions() -> void:
+	for action: AraVoxAction in av_script.actions:
+		if action.fired_after == current_line:
+			action.call_action()
 
 func check_choices() -> void:
 	if av_script.choices.size() > 0:
@@ -101,7 +108,6 @@ func fill_choices() -> void:
 func make_choice() -> void:
 	if choice_idx < current_choice.branches.size():
 		var chosen: Array[String] = current_choice.branches[choice_idx]
-		print(chosen)
 		av_script._script.append_array(chosen)
 		currently_in_branch = choice_idx
 		branch_length = chosen.size()

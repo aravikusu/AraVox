@@ -1,27 +1,27 @@
 extends Node
 
-const aravox_funcs: Array[String] = ["#rand","#pl", "#if", "#choice"]
+const aravox_funcs: Array[String] = ["#rand","#pl", "#if", "#choice", "#action"]
 
 var script_file: String = ""
 var current_data: Array = []
 
-var shorthands_location: String = "res://aravox_shorthands.tres"
+var config_location: String = "res://aravox_config.tres"
 
-var shorthands: AraVoxShorthands = null
+var config: AraVoxConfig = null
 var shorthands_are_loaded: bool = false
 
-func generate(script: String, data: Array = [], shorthands_override: String = "res://aravox_shorthands.tres") -> AraVoxScript:
+func generate(script: String, data: Array = [], config_override: String = "res://aravox_config.tres") -> AraVoxScript:
 	script_file = script
 	current_data = data
 	
-	if shorthands_override != shorthands_location:
-		shorthands_location = "res://" + shorthands_override + "/aravox_shorthands.tres"
+	if config_override != config_location:
+		config_location = "res://" + config_override + "/aravox_config.tres"
 		shorthands_are_loaded = false
 	
 	if !shorthands_are_loaded:
-		if ResourceLoader.exists(shorthands_location):
-			shorthands = load(shorthands_location)
-			assert(shorthands.get("shorthands") != null, "Supplied shorthands resource is not of type AraVoxShorthands.")
+		if ResourceLoader.exists(config_location):
+			config = load(config_location)
+			assert(config.get("shorthands") != null, "Supplied config resource is not of type AraVoxConfig.")
 		else:
 			print("AraVox: Could not find shorthands resource.")
 	
@@ -29,7 +29,7 @@ func generate(script: String, data: Array = [], shorthands_override: String = "r
 	_flush()
 	return res
 
-# Loads the script file and starts preparing it for the in-game textboxes.
+## Loads the script file and starts preparing it for the in-game textboxes.
 func _prepare_script() -> AraVoxScript:
 	var file: FileAccess = FileAccess.open(script_file, FileAccess.READ)
 	var prepared: AraVoxScript = AraVoxScript.new()
@@ -40,6 +40,7 @@ func _prepare_script() -> AraVoxScript:
 		var fixed: AraVoxScript = mustache_replacer(line, idx, file)
 		prepared._script.append_array(fixed._script)
 		prepared.choices.append_array(fixed.choices)
+		prepared.actions.append_array(fixed.actions)
 		idx += 1
 	
 	file.close()
@@ -67,6 +68,9 @@ func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, incr
 							"#choice":
 								result = _choice(file, actual_idx, mustache)
 								fixed_line = ""
+							"#action":
+								new_things.actions.append(_action(actual_idx, mustache))
+								fixed_line = ""
 				AraVoxMustache.MustacheType.DATA:
 					fixed_line = _data(fixed_line, mustache)
 				AraVoxMustache.MustacheType.SHORTHAND:
@@ -80,7 +84,7 @@ func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, incr
 			new_things._script.append(fixed_line)
 	return new_things
 
-# AraVox rand: Shows one of the options the ones supplied by the script.
+## AraVox rand: Shows one of the options the ones supplied by the script.
 func _rand(line: String, mustache: AraVoxMustache) -> String:
 	var rnd = RandomNumberGenerator.new()
 	rnd.randomize()
@@ -88,7 +92,7 @@ func _rand(line: String, mustache: AraVoxMustache) -> String:
 	var choice = mustache.vars[rnd.randi_range(0, mustache.vars.size() - 1)]
 	return line.replace(mustache.full_stache, choice)
 
-# AraVox pl: Takes an int and then selects one of the two supplied words.
+## AraVox pl: Takes an int and then selects one of the two supplied words.
 func _pl(line: String, mustache: AraVoxMustache) -> String:
 	var num = 0
 	var choice = ""
@@ -103,7 +107,7 @@ func _pl(line: String, mustache: AraVoxMustache) -> String:
 	
 	return line.replace(mustache.full_stache, choice)
 
-# AraVox if: Checks if supplied condition is truthy, then displays the correct line.
+## AraVox if: Checks if supplied condition is truthy, then displays the correct line.
 func _if(all_lines: FileAccess, start_line: int, mustache: AraVoxMustache) -> AraVoxScript:
 	assert(mustache.vars.size() != 0, "AraVox: #if is missing variables.")
 	var new_things: AraVoxScript = AraVoxScript.new()
@@ -152,6 +156,7 @@ func _if(all_lines: FileAccess, start_line: int, mustache: AraVoxMustache) -> Ar
 	
 	return new_things
 
+## Make a choice... perhaps you accept the deal, or not.
 func _choice(all_lines: FileAccess, line_number: int, mustache: AraVoxMustache) -> AraVoxScript:
 	assert(mustache.vars.size() != 0, "AraVox: #choice needs to have at least one choice.")
 	var new_things: AraVoxScript = AraVoxScript.new()
@@ -178,17 +183,36 @@ func _choice(all_lines: FileAccess, line_number: int, mustache: AraVoxMustache) 
 	new_things.choices.append(stuff)
 	return new_things
 
-# AraVox data: replaces instances of $# with their respective data.
+## AraVox action: effectively a function call to whichever function you sent in.
+func _action(line_number: int, mustache: AraVoxMustache) -> AraVoxAction:
+	assert(config, "AraVox: You need to have a AraVoxConfig file set up in order to use Actions.")
+	assert(config.actions, "AraVox: In order to use Actions you must have linked a Resource to actions in your AraVoxConfig.")
+	
+	# First variable of an Action should always be the name
+	var func_name: String = mustache.vars[0]
+	assert(config.actions.has_method(func_name), "AraVox: There is no Action with the name " + func_name + " defined in your connected Actions resource.")
+	
+	var action: AraVoxAction = AraVoxAction.new()
+	var func_props: Array[String] = mustache.vars
+	func_props.pop_front()
+	
+	action.function = Callable(config.actions, func_name)
+	action.func_props = func_props
+	action.fired_after = line_number
+	
+	return action
+
+## AraVox data: replaces instances of $# with their respective data.
 func _data(line: String, mustache: AraVoxMustache) -> String:
 	return line.replace(mustache.full_stache, get_specific_data(mustache.name))
 
-# AraVox shorthands: replaces instances of %"" with hard values.
+## AraVox shorthands: replaces instances of %"" with hard values.
 func _shorthands(line: String, mustache: AraVoxMustache) -> String:
 	var fixed = line
-	if shorthands != null:
-		var keys = shorthands.shorthands.keys()
-		var values = shorthands.shorthands.values()
-		for i in shorthands.shorthands.size():
+	if config != null:
+		var keys = config.shorthands.keys()
+		var values = config.shorthands.values()
+		for i in config.shorthands.size():
 			var key = keys[i]
 			if mustache.name == key:
 				var value = values[i]
@@ -197,7 +221,7 @@ func _shorthands(line: String, mustache: AraVoxMustache) -> String:
 
 # Helpers below...
 
-# Returns all found mustaches on a line.
+## Returns all found mustaches on a line.
 func get_all_mustaches(line: String) -> Array[AraVoxMustache]:
 	var mustaches : Array[AraVoxMustache]
 	
@@ -234,8 +258,8 @@ func prepare_mustache(mustache_contents: String) -> AraVoxMustache:
 	if mustache_name in aravox_funcs:
 		mustache_type = AraVoxMustache.MustacheType.FUNCTION
 		
-	if shorthands != null:
-		if mustache_name in shorthands.shorthands.keys():
+	if config != null:
+		if mustache_name in config.shorthands.keys():
 			mustache_type = AraVoxMustache.MustacheType.SHORTHAND
 	
 	if mustache_name.contains("$"):

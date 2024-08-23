@@ -1,3 +1,4 @@
+{{#action example_action, hello there}}
 Aravix: This is an example AraVox script.
 Someone: {{#rand Hey, Yo}}!
 Guard: ...Password?
