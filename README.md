@@ -5,4 +5,9 @@ I recommend checking out the [wiki](https://github.com/aravikusu/AraVox/wiki) fo
 
 AraVox is made for Godot 4.
 
-The Wiki is currently under construction after some relatively extensive re-writes. The AraVox itself functions the same - and old scripts will remain working - it's more of an internal change of "how AraVox works".
+Current Version: 1.2.0
+
+## Changelog
+### 1.2.0
+This update unfortunately come with a breaking change with the rename of AraVoxShorthands -> AraVoxConfig. This resource now also lets you specify a Resource that contains your Actions.
+- Added the #action Mustache.
