@@ -193,7 +193,11 @@ func _action(line_number: int, mustache: AraVoxMustache) -> AraVoxAction:
 	assert(config.actions.has_method(func_name), "AraVox: There is no Action with the name " + func_name + " defined in your connected Actions resource.")
 	
 	var action: AraVoxAction = AraVoxAction.new()
-	var func_props: Array[String] = mustache.vars
+	var func_props: Array[String] = []
+
+	for prop: String in mustache.vars:
+		var real_prop: String = get_specific_data(prop) if is_this_data(prop) else prop
+		func_props.append(real_prop)
 	func_props.pop_front()
 	
 	action.function = Callable(config.actions, func_name)

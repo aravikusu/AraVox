@@ -19,7 +19,7 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_oc5na")
 dialogue_file = "res://addons/aravox/example/example_script.txt"
-dialogue_data = [1]
+dialogue_data = [1, "General Kenobi"]
 config_override = "addons/aravox/example/"
 
 [node name="Textbox" type="MarginContainer" parent="." node_paths=PackedStringArray("name_label", "text_box_content")]

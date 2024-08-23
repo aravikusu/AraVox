@@ -8,4 +8,7 @@ class_name ExampleActions extends Resource
 
 ## A simple action that just prints to the terminal.
 func example_action(props: Array[String]) -> void:
-	print(props[0])
+	var str: String = ""
+	for prop: String in props:
+		str += prop + " "
+	print(str)
