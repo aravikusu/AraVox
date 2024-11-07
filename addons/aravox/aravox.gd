@@ -79,6 +79,7 @@ func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, incr
 			if result != null:
 				new_things._script.append_array(result._script)
 				new_things.choices.append_array(result.choices)
+				new_things.actions.append_array(result.actions)
 		
 		if fixed_line != "":
 			new_things._script.append(fixed_line)
@@ -163,16 +164,24 @@ func _choice(all_lines: FileAccess, line_number: int, mustache: AraVoxMustache) 
 
 	var all: Array[AraVoxBranch] = get_entire_choice(all_lines, line_number)
 	var branches: Array = []
+	var idx: int = 0
 	for branch: AraVoxBranch in all:
 		branches.append(branch.branch)
 		if branch.choices.size() > 0:
-			var idx: int = 0
 			var fixed = []
 			for choice: AraVoxChoice in branch.choices:
 				var temp: AraVoxChoice = choice
 				temp.appears_in_branch = idx
 				fixed.append(temp)
 			new_things.choices.append_array(fixed)
+		if branch.actions.size() > 0:
+			var fixed = []
+			for action: AraVoxAction in branch.actions:
+				var temp: AraVoxAction = action
+				temp.appears_in_branch = idx
+				fixed.append(temp)
+			new_things.actions.append_array(fixed)
+		idx += 1
 	
 	var stuff: AraVoxChoice = AraVoxChoice.new()
 	stuff.options = mustache.vars
@@ -333,6 +342,10 @@ func get_entire_choice(all_lines: FileAccess, line_number: int) -> Array[AraVoxB
 		
 		if fixed.choices.size() > 0:
 			current_branch.choices.append_array(fixed.choices)
+			idx += 1
+		
+		if fixed.actions.size() > 0:
+			current_branch.actions.append_array(fixed.actions)
 			idx += 1
 	assert(found_end, "AraVox: {{#choice}} used but could not find matching {{/choice}}. Error thrown as this will very likely break your script.")
 	
