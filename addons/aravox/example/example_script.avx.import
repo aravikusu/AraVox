@@ -1,0 +1,14 @@
+[remap]
+
+importer="aravox.avx_importer"
+type="Resource"
+uid="uid://2sbhylwkvxof"
+path="res://.godot/imported/example_script.avx-a3b158e2b29e6b3546f3615dc677bbdd.res"
+
+[deps]
+
+source_file="res://addons/aravox/example/example_script.avx"
+dest_files=["res://.godot/imported/example_script.avx-a3b158e2b29e6b3546f3615dc677bbdd.res"]
+
+[params]
+

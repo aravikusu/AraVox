@@ -1,10 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://cqkxsh8411a5g"]
+[gd_scene format=3 uid="uid://cqkxsh8411a5g"]
 
-[ext_resource type="Script" path="res://addons/aravox/example/example.gd" id="1_0bxnb"]
-[ext_resource type="Script" path="res://addons/aravox/scripts/aravox_controller.gd" id="1_oc5na"]
-[ext_resource type="Script" path="res://addons/aravox/example/components/textbox.gd" id="3_mqgo1"]
+[ext_resource type="Script" uid="uid://c6tm5s5hao4qh" path="res://addons/aravox/example/example.gd" id="1_0bxnb"]
+[ext_resource type="Script" uid="uid://do5r833dmvwot" path="res://addons/aravox/scripts/aravox_cursor.gd" id="1_oc5na"]
 
-[node name="Example" type="Control"]
+[node name="Example" type="Control" unique_id=1712449822]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,16 +12,19 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_0bxnb")
 
-[node name="AraVoxController" type="Control" parent="."]
+[node name="AraVoxCursor" type="Control" parent="." unique_id=1878989514]
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_oc5na")
-dialogue_file = "res://addons/aravox/example/example_script.txt"
-dialogue_data = [1, "General Kenobi"]
+dialogue_file = "res://addons/aravox/example/example_script.avx"
+dialogue_data = {
+"amount": 1,
+"choice": 0
+}
 config_override = "addons/aravox/example/"
 
-[node name="Textbox" type="MarginContainer" parent="." node_paths=PackedStringArray("name_label", "text_box_content")]
+[node name="Textbox" type="MarginContainer" parent="." unique_id=1417802657]
 custom_minimum_size = Vector2(0, 400)
 layout_mode = 1
 anchors_preset = 12
@@ -31,62 +33,64 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 0
-script = ExtResource("3_mqgo1")
-name_label = NodePath("VBoxContainer/HBoxContainer/VBoxContainer/NameDisplay/MarginContainer/NameLabel")
-text_box_content = NodePath("VBoxContainer/TextBox/MarginContainer/TextBoxContent")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Textbox"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Textbox" unique_id=1213480326]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="Textbox/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Textbox/VBoxContainer" unique_id=1233562692]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Textbox/VBoxContainer/HBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Textbox/VBoxContainer/HBoxContainer" unique_id=1918525958]
 layout_mode = 2
 alignment = 2
 
-[node name="NameDisplay" type="PanelContainer" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer"]
+[node name="NameDisplay" type="PanelContainer" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=212642646]
 custom_minimum_size = Vector2(150, 35)
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer/NameDisplay"]
+[node name="MarginContainer" type="MarginContainer" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer/NameDisplay" unique_id=764373950]
 layout_mode = 2
 theme_override_constants/margin_top = 5
 
-[node name="NameLabel" type="RichTextLabel" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer/NameDisplay/MarginContainer"]
+[node name="NameLabel" type="RichTextLabel" parent="Textbox/VBoxContainer/HBoxContainer/VBoxContainer/NameDisplay/MarginContainer" unique_id=273491292]
+unique_name_in_owner = true
 layout_mode = 2
 bbcode_enabled = true
 text = "[center]Name"
 
-[node name="HighTechSpacer" type="Label" parent="Textbox/VBoxContainer/HBoxContainer"]
+[node name="HighTechSpacer" type="Label" parent="Textbox/VBoxContainer/HBoxContainer" unique_id=2067912136]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ChoiceBox" type="PanelContainer" parent="Textbox/VBoxContainer/HBoxContainer"]
+[node name="ChoiceBox" type="PanelContainer" parent="Textbox/VBoxContainer/HBoxContainer" unique_id=391868965]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 
-[node name="ChoiceList" type="VBoxContainer" parent="Textbox/VBoxContainer/HBoxContainer/ChoiceBox"]
+[node name="ChoiceList" type="VBoxContainer" parent="Textbox/VBoxContainer/HBoxContainer/ChoiceBox" unique_id=152256665]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="TextBox" type="PanelContainer" parent="Textbox/VBoxContainer"]
+[node name="TextBox" type="PanelContainer" parent="Textbox/VBoxContainer" unique_id=1048477065]
 custom_minimum_size = Vector2(0, 250)
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="Textbox/VBoxContainer/TextBox"]
+[node name="MarginContainer" type="MarginContainer" parent="Textbox/VBoxContainer/TextBox" unique_id=1251277148]
 layout_mode = 2
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="TextBoxContent" type="RichTextLabel" parent="Textbox/VBoxContainer/TextBox/MarginContainer"]
+[node name="TextBoxContent" type="RichTextLabel" parent="Textbox/VBoxContainer/TextBox/MarginContainer" unique_id=936037179]
+unique_name_in_owner = true
 layout_mode = 2
 bbcode_enabled = true
 text = "This is where all the text goes..."
 
-[connection signal="script_generation_finished" from="AraVoxController" to="Textbox" method="_on_ara_vox_controller_script_generation_finished"]
+[connection signal="on_action" from="AraVoxCursor" to="." method="_on_ara_vox_cursor_on_action"]
+[connection signal="on_choice" from="AraVoxCursor" to="." method="_on_ara_vox_cursor_on_choice"]
+[connection signal="on_end" from="AraVoxCursor" to="." method="_on_ara_vox_cursor_on_end"]
+[connection signal="on_line" from="AraVoxCursor" to="." method="_on_ara_vox_cursor_on_line"]

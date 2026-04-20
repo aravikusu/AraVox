@@ -1,60 +1,89 @@
 extends Node
 
-const aravox_funcs: Array[String] = ["#rand","#pl", "#if", "#choice", "#action"]
+const aravox_builtins: Array[String] = ["#rand", "#pl", "#if", "#choice", "#action"]
 
 var script_file: String = ""
-var current_data: Array = []
+var current_data: Dictionary = {}
 
 var config_location: String = "res://aravox_config.tres"
 
 var config: AraVoxConfig = null
 var shorthands_are_loaded: bool = false
 
-func generate(script: String, data: Array = [], config_override: String = "res://aravox_config.tres") -> AraVoxScript:
+var registered_actions: Dictionary[String, Callable] = {}
+
+# Classes
+class Line:
+	## The... speaker, of the line, as it were.
+	var speaker: String = ""
+	## The text line itself.
+	var line: String = ""
+
+class Choice:
+	## The options the player interacts with.
+	var options: Array[String] = []
+	## Each element is an Array of (AraVoxLine | AraVoxChoice | AraVoxAction).
+	var branches: Array = []
+
+class Conditional:
+	## Raw condition tokens e.g. ["$gold", "==", "5"]
+	var condition_vars: Array[String] = []
+	var if_block: Array = []
+	var else_block: Array = []
+
+class Action:
+	## The actual function this action calls.
+	var function: Callable
+	## The function's properties, supplied by the script.
+	var func_props: Array[String] = []
+
+	func call_action() -> void:
+		function.call(func_props)
+
+func register_action(name: String, function: Callable) -> void:
+	registered_actions[name] = function
+
+func generate(script: String, data: Dictionary = {}, config_override: String = "res://aravox_config.tres") -> Array:
 	script_file = script
 	current_data = data
-	
+
 	if config_override != config_location:
 		config_location = "res://" + config_override + "/aravox_config.tres"
 		shorthands_are_loaded = false
-	
+
 	if !shorthands_are_loaded:
 		if ResourceLoader.exists(config_location):
 			config = load(config_location)
 			assert(config.get("shorthands") != null, "Supplied config resource is not of type AraVoxConfig.")
 		else:
 			print("AraVox: Could not find shorthands resource.")
-	
-	var res: AraVoxScript = _prepare_script()
+
+	var res: Array = _prepare_script()
 	_flush()
 	return res
 
 ## Loads the script file and starts preparing it for the in-game textboxes.
-func _prepare_script() -> AraVoxScript:
+func _prepare_script() -> Array:
 	var file: FileAccess = FileAccess.open(script_file, FileAccess.READ)
-	var prepared: AraVoxScript = AraVoxScript.new()
-	
-	var idx: int = 0
+	var prepared: Array = []
+
 	while not file.eof_reached():
 		var line: String = file.get_line()
-		var fixed: AraVoxScript = mustache_replacer(line, idx, file)
-		prepared._script.append_array(fixed._script)
-		prepared.choices.append_array(fixed.choices)
-		prepared.actions.append_array(fixed.actions)
-		idx += 1
-	
+		if line.begins_with("#"):
+			continue
+		prepared.append_array(mustache_replacer(line, file))
+
 	file.close()
 	return prepared
 
-func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, increment_idx: int = 0) -> AraVoxScript:
-	var new_things: AraVoxScript = AraVoxScript.new()
-	
-	var actual_idx: int = idx + increment_idx
+func mustache_replacer(line: String, file: FileAccess = null) -> Array:
+	var new_things: Array = []
+
 	if line != "":
 		var mustaches: Array[AraVoxMustache] = get_all_mustaches(line)
 		var fixed_line: String = line
 		for mustache: AraVoxMustache in mustaches:
-			var result = null
+			var result: Array = []
 			match mustache.type:
 				AraVoxMustache.MustacheType.FUNCTION:
 					match mustache.name:
@@ -63,42 +92,39 @@ func mustache_replacer(line: String, idx: int = 0, file: FileAccess = null, incr
 							"#pl":
 								fixed_line = _pl(fixed_line, mustache)
 							"#if":
-								result = _if(file, actual_idx, mustache)
+								result = _if(file, mustache)
 								fixed_line = ""
 							"#choice":
-								result = _choice(file, actual_idx, mustache)
+								result = _choice(file, mustache)
 								fixed_line = ""
 							"#action":
-								new_things.actions.append(_action(actual_idx, mustache))
+								new_things.append(_action(mustache))
 								fixed_line = ""
 				AraVoxMustache.MustacheType.DATA:
 					fixed_line = _data(fixed_line, mustache)
 				AraVoxMustache.MustacheType.SHORTHAND:
 					fixed_line = _shorthands(fixed_line, mustache)
-			
-			if result != null:
-				new_things._script.append_array(result._script)
-				new_things.choices.append_array(result.choices)
-				new_things.actions.append_array(result.actions)
-		
+
+			if result.size() > 0:
+				new_things.append_array(result)
+
 		if fixed_line != "":
-			new_things._script.append(fixed_line)
+			new_things.append(_parse_line(fixed_line.replace("\\{{", "{{")))
 	return new_things
 
 ## AraVox rand: Shows one of the options the ones supplied by the script.
 func _rand(line: String, mustache: AraVoxMustache) -> String:
-	var rnd = RandomNumberGenerator.new()
-	rnd.randomize()
+	randomize()
 	
-	var choice = mustache.vars[rnd.randi_range(0, mustache.vars.size() - 1)]
+	var choice: String = mustache.vars[randi_range(0, mustache.vars.size() - 1)]
 	return line.replace(mustache.full_stache, choice)
 
 ## AraVox pl: Takes an int and then selects one of the two supplied words.
 func _pl(line: String, mustache: AraVoxMustache) -> String:
-	var num = 0
-	var choice = ""
+	var num: String = mustache.vars[0]
+	var choice: String = ""
 	
-	if is_this_data(mustache.vars[0]):
+	if is_this_data(num):
 		num = get_specific_data(mustache.vars[0])
 	
 	if int(num) == 1:
@@ -109,110 +135,47 @@ func _pl(line: String, mustache: AraVoxMustache) -> String:
 	return line.replace(mustache.full_stache, choice)
 
 ## AraVox if: Checks if supplied condition is truthy, then displays the correct line.
-func _if(all_lines: FileAccess, start_line: int, mustache: AraVoxMustache) -> AraVoxScript:
+func _if(all_lines: FileAccess, mustache: AraVoxMustache) -> Array:
 	assert(mustache.vars.size() != 0, "AraVox: #if is missing variables.")
-	var new_things: AraVoxScript = AraVoxScript.new()
-	
-	var all = get_entire_if(all_lines)
-	var value1
-	if is_this_data(mustache.vars[0]):
-		value1 = get_specific_data(mustache.vars[0])
-	else:
-		value1 = mustache.vars[0]
-	
-	var is_truthy = false
-	if mustache.vars.size() > 1:
-		var value2
-		var operator = mustache.vars[1]
-		
-		if is_this_data(mustache.vars[2]):
-			value2 = get_specific_data(mustache.vars[2])
-		else:
-			value2 = mustache.vars[2]
-		
-		match operator:
-			"==":
-				if value1 == value2: is_truthy = true
-			"!=":
-				if value1 != value2: is_truthy = true
-			">":
-				if value1 > value2: is_truthy = true
-			"<":
-				if value1 < value2: is_truthy = true
-	else:
-		if bool(int(value1)): is_truthy = true
-	
-	var lines = []
-	if is_truthy:
-		lines = all.if_block
-	else:
-		lines = all.else_block
-	
-	var idx = 0
-	for line in lines:
-		var fixed = mustache_replacer(line, start_line, all_lines, idx)
-		new_things._script.append_array(fixed._script)
-		new_things.choices.append_array(fixed.choices)
-		idx += 1
-	
-	return new_things
+
+	var all: Dictionary[String, Array] = get_entire_if(all_lines)
+	var conditional: Conditional = Conditional.new()
+	conditional.condition_vars = mustache.vars
+
+	for line in all.if_block:
+		conditional.if_block.append_array(mustache_replacer(line, all_lines))
+	for line in all.else_block:
+		conditional.else_block.append_array(mustache_replacer(line, all_lines))
+
+	return [conditional]
 
 ## Make a choice... perhaps you accept the deal, or not.
-func _choice(all_lines: FileAccess, line_number: int, mustache: AraVoxMustache) -> AraVoxScript:
+func _choice(all_lines: FileAccess, mustache: AraVoxMustache) -> Array:
 	assert(mustache.vars.size() != 0, "AraVox: #choice needs to have at least one choice.")
-	var new_things: AraVoxScript = AraVoxScript.new()
 
-	var all: Array[AraVoxBranch] = get_entire_choice(all_lines, line_number)
-	var branches: Array = []
-	var idx: int = 0
-	for branch: AraVoxBranch in all:
-		branches.append(branch.branch)
-		if branch.choices.size() > 0:
-			var fixed = []
-			for choice: AraVoxChoice in branch.choices:
-				var temp: AraVoxChoice = choice
-				temp.appears_in_branch = idx
-				fixed.append(temp)
-			new_things.choices.append_array(fixed)
-		if branch.actions.size() > 0:
-			var fixed = []
-			for action: AraVoxAction in branch.actions:
-				var temp: AraVoxAction = action
-				temp.appears_in_branch = idx
-				fixed.append(temp)
-			new_things.actions.append_array(fixed)
-		idx += 1
-	
-	var stuff: AraVoxChoice = AraVoxChoice.new()
-	stuff.options = mustache.vars
-	stuff.branches = branches
-	stuff.appears_on = line_number
-	stuff.appears_in_branch = -1
-	
-	new_things.choices.append(stuff)
-	return new_things
+	var choice: Choice = Choice.new()
+	choice.options = mustache.vars
+	for branch in get_entire_choice(all_lines):
+		choice.branches.append(branch)
+
+	return [choice]
 
 ## AraVox action: effectively a function call to whichever function you sent in.
-func _action(line_number: int, mustache: AraVoxMustache) -> AraVoxAction:
-	assert(config, "AraVox: You need to have a AraVoxConfig file set up in order to use Actions.")
-	assert(config.actions, "AraVox: In order to use Actions you must have linked a Resource to actions in your AraVoxConfig.")
-	
-	# First variable of an Action should always be the name
+func _action(mustache: AraVoxMustache) -> Action:
 	var func_name: String = mustache.vars[0]
-	assert(config.actions.has_method(func_name), "AraVox: There is no Action with the name " + func_name + " defined in your connected Actions resource.")
-	
-	var action: AraVoxAction = AraVoxAction.new()
+	assert(func_name in registered_actions, "AraVox: There is no Action with the name " + func_name + " registered. Be sure to call register_action with the name & Callable you want to use.")
+
+	var action: Action = Action.new()
 	var func_props: Array[String] = []
 
 	for prop: String in mustache.vars:
 		var real_prop: String = get_specific_data(prop) if is_this_data(prop) else prop
 		func_props.append(real_prop)
 	func_props.pop_front()
-	
-	action.function = Callable(config.actions, func_name)
+
+	action.function = registered_actions[func_name]
 	action.func_props = func_props
-	action.fired_after = line_number
-	
+
 	return action
 
 ## AraVox data: replaces instances of $# with their respective data.
@@ -221,58 +184,96 @@ func _data(line: String, mustache: AraVoxMustache) -> String:
 
 ## AraVox shorthands: replaces instances of %"" with hard values.
 func _shorthands(line: String, mustache: AraVoxMustache) -> String:
-	var fixed = line
+	var fixed: String = line
 	if config != null:
-		var keys = config.shorthands.keys()
-		var values = config.shorthands.values()
+		var keys: Array = config.shorthands.keys()
+		var values: Array = config.shorthands.values()
 		for i in config.shorthands.size():
-			var key = keys[i]
-			if mustache.name == key:
-				var value = values[i]
+			var key: String = keys[i]
+			if mustache.name.replace("%", "") == key:
+				var value: String = values[i]
 				fixed = fixed.replace(mustache.full_stache, value)
 	return fixed
 
 # Helpers below...
 
+## Parses the line, currently grabs [Speaker] tags.
+func _parse_line(text: String) -> Line:
+	var av_line: Line = Line.new()
+	if text.begins_with("["):
+		var close: int = text.find("]")
+		if close != -1:
+			av_line.speaker = text.substr(1, close - 1)
+			av_line.line = text.substr(close + 1).strip_edges()
+			return av_line
+	av_line.line = text
+	return av_line
+
 ## Returns all found mustaches on a line.
 func get_all_mustaches(line: String) -> Array[AraVoxMustache]:
-	var mustaches : Array[AraVoxMustache]
-	
-	var remaining = line
-	var keep_searching = true
-	var idx = 0
-	while keep_searching:
-		if remaining.contains("{{"):
-			assert(idx != 1000, "AraVox: Unable to find closing mustache for line: " + remaining + " after 1000 iterations. Ceasing operation; check for broken mustaches.")
-			var mustache = find_between(remaining, "{{", "}}")
-			
-			mustaches.append(prepare_mustache(mustache))
-			
-			remaining = remaining.replace("{{" + mustache + "}}", "")
-		else:
-			keep_searching = false
-		idx += 1
+	var mustaches: Array[AraVoxMustache]
+	for span in _scan_line_for_mustaches(line):
+		mustaches.append(prepare_mustache(span))
 	return mustaches
 
+## Going through the line by character, getting all the parameters of each mustache
+func _scan_line_for_mustaches(line: String) -> Array[String]:
+	var spans: Array[String] = []
+	var i: int = 0
+	while i < line.length() - 1:
+		if line[i] == '{' && line[i + 1] == '{':
+			if i > 0 && line[i - 1] == '\\':
+				i += 2
+				continue
+			i += 2
+			var contents: String = ""
+			while i < line.length() - 1:
+				if line[i] == '}' && line[i + 1] == '}':
+					spans.append(contents)
+					i += 2
+					break
+				contents += line[i]
+				i += 1
+		else:
+			i += 1
+	return spans
+
+## Splits comma-separated mustache arguments.
+func _tokenize_args(raw: String) -> Array[String]:
+	var tokens: Array[String] = []
+	var current: String = ""
+	var in_quotes: bool = false
+	for ch in raw:
+		if ch == '"':
+			in_quotes = !in_quotes
+		elif ch == ',' && !in_quotes:
+			tokens.append(current.strip_edges())
+			current = ""
+		else:
+			current += ch
+	if not current.strip_edges().is_empty():
+		tokens.append(current.strip_edges())
+	return tokens
+
+## Prepare the mustache so we can later correctly handle them based on what they are.
 func prepare_mustache(mustache_contents: String) -> AraVoxMustache:
-	var mustache_name: String = mustache_contents.split(" ")[0]
-	
-	var mustache_vars: String = mustache_contents.replace(mustache_name, "")
-	
-	var mustache_arr: Array[String] = []
-	for m_var: String in mustache_vars.split(","):
-		var variable: String = m_var
-		while variable.find(" ") == 0:
-			variable = variable.trim_prefix(" ")
-		mustache_arr.append(variable)
+	var space_idx: int = mustache_contents.find(" ")
+	var mustache_name: String
+	var mustache_arr: Array[String]
+	if space_idx == -1:
+		mustache_name = mustache_contents
+		mustache_arr = []
+	else:
+		mustache_name = mustache_contents.left(space_idx)
+		mustache_arr = _tokenize_args(mustache_contents.substr(space_idx + 1))
 	
 	var mustache_type: AraVoxMustache.MustacheType = AraVoxMustache.MustacheType.NONE
 	
-	if mustache_name in aravox_funcs:
+	if mustache_name in aravox_builtins:
 		mustache_type = AraVoxMustache.MustacheType.FUNCTION
 		
-	if config != null:
-		if mustache_name in config.shorthands.keys():
+	if config != null && mustache_name.contains("%"):
+		if mustache_name.replace("%", "") in config.shorthands.keys():
 			mustache_type = AraVoxMustache.MustacheType.SHORTHAND
 	
 	if mustache_name.contains("$"):
@@ -284,25 +285,25 @@ func prepare_mustache(mustache_contents: String) -> AraVoxMustache:
 	mustache.type = mustache_type
 	mustache.name = mustache_name
 	mustache.vars = mustache_arr
-	mustache.full_stache = "{{" + mustache_contents +  "}}"
+	mustache.full_stache = "{{" + mustache_contents + "}}"
 	
 	return mustache
 
-# Iterate through the entire #if block and return it in a nice dictionary.
-func get_entire_if(all_lines: FileAccess) -> Dictionary:
-	var stuff = {
+## Iterate through the entire #if block and return it in a 'nice' dictionary.
+func get_entire_if(all_lines: FileAccess) -> Dictionary[String, Array]:
+	var stuff: Dictionary[String, Array] = {
 		"if_block": [],
 		"else_block": [],
 	}
 	
-	var if_block = true
-	var found_end = false
-	while not all_lines.eof_reached():
-		var current = all_lines.get_line()
-		if current == "{{#else}}": 
+	var if_block: bool = true
+	var found_end: bool = false
+	while !all_lines.eof_reached():
+		var current: String = all_lines.get_line()
+		if current == "{{#else}}":
 			if_block = false
 			continue
-		elif current =="{{/if}}":
+		elif current == "{{/if}}":
 			found_end = true
 			break
 		
@@ -316,57 +317,41 @@ func get_entire_if(all_lines: FileAccess) -> Dictionary:
 	return stuff
 
 # Similar to the #if version, but this time returns all the branches.
-func get_entire_choice(all_lines: FileAccess, line_number: int) -> Array[AraVoxBranch]:
-	var branches: Array[AraVoxBranch] = []
-	
-	var current_branch: AraVoxBranch = AraVoxBranch.new()
+func get_entire_choice(all_lines: FileAccess) -> Array:
+	var branches: Array = []
+
+	var current_branch: Array = []
 	var found_end: bool = false
-	var idx: int = 0
-	while not all_lines.eof_reached():
+	while !all_lines.eof_reached():
 		var current: String = all_lines.get_line()
 		if current == "{{#branch}}":
 			continue
 		elif current == "{{/branch}}":
 			branches.append(current_branch)
-			current_branch = AraVoxBranch.new()
-			idx = 0
+			current_branch = []
 			continue
 		elif current == "{{/choice}}":
 			found_end = true
 			break
-		
-		var fixed = mustache_replacer(current, line_number, all_lines, idx)
-		if fixed._script.size() > 0:
-			current_branch.branch.append_array(fixed._script)
-			idx += 1
-		
-		if fixed.choices.size() > 0:
-			current_branch.choices.append_array(fixed.choices)
-			idx += 1
-		
-		if fixed.actions.size() > 0:
-			current_branch.actions.append_array(fixed.actions)
-			idx += 1
+
+		current_branch.append_array(mustache_replacer(current, all_lines))
+
 	assert(found_end, "AraVox: {{#choice}} used but could not find matching {{/choice}}. Error thrown as this will very likely break your script.")
-	
 	return branches
 
 func is_this_data(maybe_data: String) -> bool:
-	var well_is_it = false
+	var well_is_it: bool = false
 	if maybe_data[0] == "$":
 		assert(current_data.size() > 0, "AraVox: Your function call contains data requests, but you have not supplied any data.")
 		well_is_it = true
 	return well_is_it
 
 # Returns the data with the supplied index.
-func get_specific_data(data_index: String) -> String:
-	assert(current_data.size() >= int(data_index.replace("$", "")), "AraVox: You've requested data index " + data_index + " when the data_array only has " + str(current_data.size()) + " elements.")
-	return str(current_data[int(data_index.replace("$", ""))])
-
-# Returns everything between two points in a string.
-func find_between(line: String, first: String, last: String) -> String:
-	return(line.split(first))[1].split(last)[0]
+func get_specific_data(data: String) -> String:
+	var removed_prefix: String = data.replace("$", "")
+	assert(removed_prefix.replace("$", "") in current_data, "AraVox: The data %s does not exist in the data Dictionary")
+	return str(current_data[removed_prefix])
 
 func _flush() -> void:
 	script_file = ""
-	current_data = []
+	current_data = {}

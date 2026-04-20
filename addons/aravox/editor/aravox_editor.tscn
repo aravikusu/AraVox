@@ -1,0 +1,178 @@
+[gd_scene format=3 uid="uid://chbhq280elbec"]
+
+[ext_resource type="Script" uid="uid://bu6p26ce6ax7r" path="res://addons/aravox/editor/aravox_editor.gd" id="1_syui3"]
+[ext_resource type="Script" uid="uid://djrsne851yjs6" path="res://addons/aravox/editor/aravox_highlighter.gd" id="2_0yr8m"]
+
+[sub_resource type="DPITexture" id="DPITexture_0yr8m"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M2 1v14h8v-1H8v-4h2V8h4V6H9V1zm8 0v4h4z\"/><path fill=\"#5fff97\" d=\"M11 9v2H9v2h2v2h2v-2h2v-2h-2V9z\"/></svg>
+"
+saturation = 2.0
+color_map = {
+Color(1, 0.37254903, 0.37254903, 1): Color(1, 0.47, 0.42, 1),
+Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
+Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
+}
+
+[sub_resource type="DPITexture" id="DPITexture_kh1cw"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M3 2a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9c1.105 0 1.818-.91 2-2l1-6a1 1 0 0 0-1-1H6c-.552 0-.909.455-1 1l-1 6c-.091.545-.448 1-1 1a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1 1 1 0 0 0 1 1h5a1 1 0 0 0-1-1H7a2 2 0 0 0-2-2H3z\"/></svg>
+"
+saturation = 2.0
+color_map = {
+Color(1, 0.37254903, 0.37254903, 1): Color(1, 0.47, 0.42, 1),
+Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
+Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
+}
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uoxof"]
+bg_color = Color(0.21950099, 0.21950105, 0.21950087, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="DPITexture" id="DPITexture_uoxof"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\"><path fill=\"#e0e0e0\" d=\"m3 1v2h-2v2h2v4h-2v2h2v2h2v-2h4v2h2v-2h2v-2h-2v-4h2v-2h-2v-2h-2v2h-4v-2zm2 4h4v4h-4z\"/></svg>
+"
+saturation = 2.0
+color_map = {
+Color(1, 0.37254903, 0.37254903, 1): Color(1, 0.47, 0.42, 1),
+Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
+Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
+}
+
+[sub_resource type="DPITexture" id="DPITexture_l6fe3"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"m5 9 5.5-5.5L8 1h7v7l-2.5-2.5L7 11zm7 6H4a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3h2a1 1 0 0 1 0 2H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2a1 1 0 0 1 2 0v2a3 3 0 0 1-3 3z\"/></svg>
+"
+saturation = 2.0
+color_map = {
+Color(1, 0.37254903, 0.37254903, 1): Color(1, 0.47, 0.42, 1),
+Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
+Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
+}
+
+[sub_resource type="CodeHighlighter" id="CodeHighlighter_kh1cw"]
+script = ExtResource("2_0yr8m")
+metadata/_custom_type_script = "uid://djrsne851yjs6"
+
+[node name="AraVoxEditor" type="VBoxContainer" unique_id=2026239542]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_syui3")
+
+[node name="Toolbar" type="HBoxContainer" parent="." unique_id=1349602703]
+layout_mode = 2
+
+[node name="NewButton" type="Button" parent="Toolbar" unique_id=426935320]
+unique_name_in_owner = true
+layout_mode = 2
+text = "New..."
+icon = SubResource("DPITexture_0yr8m")
+
+[node name="OpenButton" type="Button" parent="Toolbar" unique_id=1377474279]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Open..."
+icon = SubResource("DPITexture_kh1cw")
+
+[node name="FilePath" type="Label" parent="Toolbar" unique_id=343667163]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "No file open"
+clip_text = true
+
+[node name="Toolbox" type="PanelContainer" parent="Toolbar" unique_id=1538818031]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_uoxof")
+
+[node name="MarginContainer" type="MarginContainer" parent="Toolbar/Toolbox" unique_id=1490952133]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Toolbar/Toolbox/MarginContainer" unique_id=209077259]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Toolbar/Toolbox/MarginContainer/HBoxContainer" unique_id=793347637]
+layout_mode = 2
+text = "Toolbox"
+
+[node name="InsertButton" type="OptionButton" parent="Toolbar/Toolbox/MarginContainer/HBoxContainer" unique_id=2061284285]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+fit_to_longest_item = false
+item_count = 13
+popup/item_0/text = "Insert..."
+popup/item_0/id = 0
+popup/item_1/text = "Functions"
+popup/item_1/id = -1
+popup/item_1/separator = true
+popup/item_2/text = "#rand"
+popup/item_2/id = 2
+popup/item_3/text = "#pl"
+popup/item_3/id = 3
+popup/item_4/text = "#action"
+popup/item_4/id = 4
+popup/item_5/text = "Blocks"
+popup/item_5/id = -1
+popup/item_5/separator = true
+popup/item_6/text = "#if"
+popup/item_6/id = 6
+popup/item_7/text = "#if-else"
+popup/item_7/id = 7
+popup/item_8/text = "#choice"
+popup/item_8/id = 8
+popup/item_9/text = "Other"
+popup/item_9/id = -1
+popup/item_9/separator = true
+popup/item_10/text = "[Speaker]"
+popup/item_10/id = 10
+popup/item_11/text = "{{&data}}"
+popup/item_11/id = 11
+popup/item_12/text = "{{%shorthand}}"
+popup/item_12/id = 12
+
+[node name="CommentButton" type="Button" parent="Toolbar/Toolbox/MarginContainer/HBoxContainer" unique_id=1725702933]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Comment/Uncomment selection
+
+If any of the selected lines are uncommented, they all become comented.
+If all lines are comments, it will uncomment all."
+icon = SubResource("DPITexture_uoxof")
+
+[node name="WikiButton" type="Button" parent="Toolbar" unique_id=638887733]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "View the AraVox documentation on GitHub. "
+text = "Wiki"
+icon = SubResource("DPITexture_l6fe3")
+
+[node name="CodeEdit" type="CodeEdit" parent="." unique_id=1063064762]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_default_cursor_shape = 0
+text = "Use the toolbar above to either create or open an AraVox Script.
+You can also double-click an .avx file in the FileSystem, or drag-and-drop it in."
+editable = false
+deselect_on_focus_loss_enabled = false
+minimap_draw = true
+caret_blink = true
+syntax_highlighter = SubResource("CodeHighlighter_kh1cw")
+
+[node name="Debounce" type="Timer" parent="." unique_id=1154507327]
+one_shot = true
+
+[connection signal="pressed" from="Toolbar/NewButton" to="." method="_on_new_button_pressed"]
+[connection signal="pressed" from="Toolbar/OpenButton" to="." method="_on_open_button_pressed"]
+[connection signal="item_selected" from="Toolbar/Toolbox/MarginContainer/HBoxContainer/InsertButton" to="." method="_on_insert_button_item_selected"]
+[connection signal="pressed" from="Toolbar/Toolbox/MarginContainer/HBoxContainer/CommentButton" to="." method="_on_comment_button_pressed"]
+[connection signal="pressed" from="Toolbar/WikiButton" to="." method="_on_wiki_button_pressed"]
+[connection signal="text_changed" from="CodeEdit" to="." method="_on_code_edit_text_changed"]
+[connection signal="timeout" from="Debounce" to="." method="_on_timer_timeout"]

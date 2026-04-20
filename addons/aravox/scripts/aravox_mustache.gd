@@ -1,4 +1,6 @@
-class_name AraVoxMustache extends Resource
+## This is more or less just used for internal AraVox mustache preparation.
+##You probably don't need to ever interact with it.
+class_name AraVoxMustache extends RefCounted
 
 enum MustacheType {
 	FUNCTION = 0,

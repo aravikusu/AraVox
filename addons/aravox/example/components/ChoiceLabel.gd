@@ -1,7 +1,7 @@
 extends MarginContainer
 
-@onready var panel = $PanelContainer
-@onready var label = $"%Label"
+@onready var panel: PanelContainer = $PanelContainer
+@onready var label: Label = $"%Label"
 func set_text(text):
 	label.text = text
 
