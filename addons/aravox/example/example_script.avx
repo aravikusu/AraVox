@@ -2,7 +2,7 @@ This is an example AraVox script. It will showcase every feature AraVox has.
 [Aravix] We are now using a Speaker tag, and as such, I am now a speaker.
 [Aravix] The following greeting is random, using the #rand function: {{#rand Hey there, What's up?, Yo}}
 [Aravix] The next line uses the #pl function. Modify 'amount' in the data for AraVoxCursor in the example scene to change it from singular to plural: 
-[Aravix] I am currently holding: {{$amount}} {{#pl s, thing, things}}
+[Aravix] I am currently holding: {{$amount}} {{#pl $amount, thing, things}}
 [Aravix] As mentioned before, the #pl function made use of the data called 'amount'. You dialogue data is always prefixed by $.
 [Aravix] Sometimes you want you make a choice. Tell me, what do you want to order?
 {{#choice Burgers, Pizza}}

@@ -36,11 +36,18 @@ func _process(_delta: float) -> void:
 			choice_labels[choice_idx].inactive()
 			choice_idx = (choice_idx - 1 + choice_labels.size()) % choice_labels.size()
 		if Input.is_action_just_pressed("ui_accept"):
-			_confirm_choice()
+			confirm_choice()
 	else:
 		choicebox.hide()
 		if Input.is_action_just_pressed("ui_accept"):
 			cursor.advance()
+
+func confirm_choice() -> void:
+	for label in choice_labels:
+		label.queue_free()
+	choice_labels.clear()
+	choices_are_being_made = false
+	cursor.choose(choice_idx)
 
 func _on_ara_vox_cursor_on_line(line: AraVox.Line) -> void:
 	name_label.text = "[center]" + line.speaker
@@ -62,10 +69,3 @@ func _on_ara_vox_cursor_on_action(action: AraVox.Action) -> void:
 func _on_ara_vox_cursor_on_end() -> void:
 	name_label.text = ""
 	text_box_content.text = "SCRIPT END"
-
-func _confirm_choice() -> void:
-	for label in choice_labels:
-		label.queue_free()
-	choice_labels.clear()
-	choices_are_being_made = false
-	cursor.choose(choice_idx)
