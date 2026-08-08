@@ -8,7 +8,7 @@ var current_data: Dictionary = {}
 var config_location: String = "res://aravox_config.tres"
 
 var config: AraVoxConfig = null
-var shorthands_are_loaded: bool = false
+var config_is_loaded: bool = false
 
 var registered_actions: Dictionary[String, Callable] = {}
 
@@ -44,19 +44,26 @@ func register_action(name: String, function: Callable) -> void:
 	registered_actions[name] = function
 
 func generate(script: String, data: Dictionary = {}, config_override: String = "res://aravox_config.tres") -> Array:
-	script_file = script
+	# Scene files save imported files as uid://... strings; resolve them to real paths.
+	if script.begins_with("uid://"):
+		script_file = ResourceUID.ensure_path(script)
+		if script_file.is_empty():
+			push_error("AraVox: Could not resolve script UID: %s" % script)
+			return []
+	else:
+		script_file = script
 	current_data = data
 
 	if config_override != config_location:
-		config_location = "res://" + config_override + "/aravox_config.tres"
-		shorthands_are_loaded = false
+		config_location = config_override
+		config_is_loaded = false
 
-	if !shorthands_are_loaded:
+	if !config_is_loaded:
 		if ResourceLoader.exists(config_location):
 			config = load(config_location)
 			assert(config.get("shorthands") != null, "Supplied config resource is not of type AraVoxConfig.")
 		else:
-			print("AraVox: Could not find shorthands resource.")
+			print("AraVox: Could not find config resource.")
 
 	var res: Array = _prepare_script()
 	_flush()
@@ -65,6 +72,10 @@ func generate(script: String, data: Dictionary = {}, config_override: String = "
 ## Loads the script file and starts preparing it for the in-game textboxes.
 func _prepare_script() -> Array:
 	var file: FileAccess = FileAccess.open(script_file, FileAccess.READ)
+	if file == null:
+		push_error("AraVox: Could not open script file: %s (error %s)" % [script_file, FileAccess.get_open_error()])
+		return []
+
 	var prepared: Array = []
 
 	while not file.eof_reached():

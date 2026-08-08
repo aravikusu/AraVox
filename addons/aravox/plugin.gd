@@ -2,13 +2,13 @@
 extends EditorPlugin
 
 const AraVoxEditor: PackedScene = preload("res://addons/aravox/editor/aravox_editor.tscn")
-
 const AvxFile = preload("res://addons/aravox/avx_file.gd")
 
 var dock: EditorDock
 var editor_instance: VBoxContainer
 var avx_exporter: EditorExportPlugin
 var avx_importer: EditorImportPlugin
+
 
 func _enter_tree() -> void:
 	add_autoload_singleton("AraVox", "res://addons/aravox/aravox.gd")
@@ -20,10 +20,10 @@ func _enter_tree() -> void:
 
 	avx_importer = preload("res://addons/aravox/avx_importer.gd").new()
 	add_import_plugin(avx_importer)
-	
+
 	# editor stuff
 	editor_instance = AraVoxEditor.instantiate()
-	
+
 	dock = EditorDock.new()
 	dock.add_child(editor_instance)
 	dock.title = "AraVox Editor"
@@ -31,6 +31,7 @@ func _enter_tree() -> void:
 	dock.available_layouts = EditorDock.DOCK_LAYOUT_VERTICAL | EditorDock.DOCK_LAYOUT_FLOATING
 
 	add_dock(dock)
+
 
 func _exit_tree() -> void:
 	remove_autoload_singleton("AraVox")
@@ -43,12 +44,15 @@ func _exit_tree() -> void:
 		remove_dock(dock)
 		dock.queue_free()
 
+
 func _handles(object: Object) -> bool:
 	return object is Resource and object.get_script() == AvxFile
+
 
 func _edit(object: Object) -> void:
 	editor_instance.open_file((object as Resource).get("source_path"))
 	dock.make_visible()
+
 
 func _has_main_screen() -> bool:
 	return false

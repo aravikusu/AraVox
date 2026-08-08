@@ -1,32 +1,28 @@
-## This simply ensures that .avx files are automatically exported
-## when you export your game.
-##
-## This more or less means you won't have to manually add .avx files
-## to your export settings. Wee.
 @tool
 extends EditorExportPlugin
+## This ensures that .avx files are exported as plain text files.
+##
+## Because .avx is registered as a custom imported Resource, Godot would
+## normally remap the source file to its imported .res counterpart in an
+## exported build. AraVox reads the raw script text with FileAccess, so
+## that remap makes FileAccess.open(path) return null and no dialogue is
+## loaded. This plugin skips the default imported export and re-adds the
+## raw source file instead.
+
 
 func _get_name() -> String:
 	return "AraVoxExportPlugin"
 
-func _export_begin(_features: PackedStringArray, _is_debug: bool, _path: String, _flags: int) -> void:
-	_add_avx_files("res://")
 
-func _add_avx_files(dir_path: String) -> void:
-	var dir: DirAccess = DirAccess.open(dir_path)
-	if dir == null:
+func _export_file(path: String, _type: String, _features: PackedStringArray) -> void:
+	if not path.ends_with(".avx"):
 		return
-	dir.list_dir_begin()
-	var entry: String = dir.get_next()
-	while entry != "":
-		if dir.current_is_dir():
-			if not entry.begins_with("."):
-				_add_avx_files(dir_path.path_join(entry))
-		elif entry.ends_with(".avx"):
-			var full_path: String = dir_path.path_join(entry)
-			var file: FileAccess = FileAccess.open(full_path, FileAccess.READ)
-			if file:
-				add_file(full_path, file.get_buffer(file.get_length()), false)
-				file.close()
-		entry = dir.get_next()
-	dir.list_dir_end()
+
+	# Stop Godot from exporting this as a remapped imported Resource.
+	skip()
+
+	# Re-add the raw .avx source so AraVox can read it at runtime.
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file:
+		add_file(path, file.get_buffer(file.get_length()), false)
+		file.close()

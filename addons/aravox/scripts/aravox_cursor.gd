@@ -1,8 +1,9 @@
+class_name AraVoxCursor
+extends Node
 ## AraVoxCursor
 ##
 ## Generates and holds your hand in actually creating a UI for AraVox scripts.
 ## Simply connect your file, data, and config and let the cursor signal what your UI should do next.
-class_name AraVoxCursor extends Node
 
 ## A new line has appeared! It's just a normal dialogue line.
 signal on_line(line: AraVox.Line)
@@ -20,10 +21,11 @@ signal on_end
 ## The dialogue script file to load.
 @export_file("*.avx") var dialogue_file: String = ""
 ## Data dictionary passed to the script for variable substitution.
-@export var dialogue_data: Dictionary = {}
+@export var dialogue_data: Dictionary = { }
 ## Override the config file location. Defaults to res://aravox_config.tres.
-@export var config_override: String = ""
+@export_file("*.tres") var config_override: String = ""
 
+var line_log: Array[AraVox.Line] = []
 ## The script stack. Every block of the script will be thrown in here in order.
 ## The script is always reading from the "most recent" block within.
 ## This means that when a choice or conditional branches the script, the branch goes first,
@@ -31,11 +33,13 @@ signal on_end
 var _script: Array = []
 var _current_choice: AraVox.Choice = null
 
+
 ## Generate the script. This is the starting point when you want to use AraVoxCursor.
 func generate() -> void:
 	assert(dialogue_file != "", "AraVox: You must supply a dialogue file before calling generate().")
 	_script = [_new_block(AraVox.generate(dialogue_file, dialogue_data, config_override))]
 	_current_choice = null
+
 
 ## Progresses the script.
 func advance() -> void:
@@ -60,6 +64,8 @@ func advance() -> void:
 
 	# What the heck is this element? Send the right signal.
 	if element is AraVox.Line:
+		if AraVox.config.use_log:
+			line_log.append(element)
 		on_line.emit(element)
 	elif element is AraVox.Choice:
 		# A choice has to be made here. Save the element, then signal up.
@@ -69,7 +75,7 @@ func advance() -> void:
 	elif element is AraVox.Action:
 		# An Action simply signals up and advances.
 		on_action.emit(element)
-		advance()
+		#advance()
 	elif element is AraVox.Conditional:
 		# Conditionals have to be avaluated before we advance
 		var is_truthy: bool = _evaluate_condition(element)
@@ -85,6 +91,7 @@ func advance() -> void:
 			_script.push_back(_new_block(content, block_index))
 		advance()
 
+
 ## When AraVoxCursor encounters a Choice, you're alerted by the on_choice signal.
 ## When the player finally makes their choice, call this function with the index of the choice
 ## and AraVoxCursor will progress the script as intended.
@@ -96,15 +103,19 @@ func choose(index: int) -> void:
 	_script.push_back(_new_block(content, index))
 	advance()
 
+
 ## Returns a Dictionary of the current block you're in, as well as whichever branch you're in
 func save_state() -> Dictionary:
 	var blocks: Array = []
 	for block: Dictionary in _script:
-		blocks.append({
-			"position": block.position,
-			"branch_index": block.get("branch_index", -1)
-		})
-	return {"blocks": blocks, "pending_choice": _current_choice != null}
+		blocks.append(
+			{
+				"position": block.position,
+				"branch_index": block.get("branch_index", -1),
+			},
+		)
+	return { "blocks": blocks, "pending_choice": _current_choice != null }
+
 
 ## Restoring from a save... a bit messy
 func load_state(state: Dictionary) -> void:
@@ -141,6 +152,7 @@ func load_state(state: Dictionary) -> void:
 			_current_choice = element
 			on_choice.emit(element)
 
+
 ## Did the user talk to that one NPC 15 times before talking to this one to trigger the thing?
 ## No, I'm not jaded by old RPG's at all
 func _evaluate_condition(conditional: AraVox.Conditional) -> bool:
@@ -163,11 +175,16 @@ func _evaluate_condition(conditional: AraVox.Conditional) -> bool:
 		value2 = vars[2]
 
 	match vars[1]:
-		"==": return value1 == value2
-		"!=": return value1 != value2
-		">": return float(value1) > float(value2)
-		"<": return float(value1) < float(value2)
+		"==":
+			return value1 == value2
+		"!=":
+			return value1 != value2
+		">":
+			return float(value1) > float(value2)
+		"<":
+			return float(value1) < float(value2)
 	return false
+
 
 ## Get the next block. Called at the initial generation, during a new branch, conditional...
 ## Essentially: this is the next block you will traverse in the script.
@@ -175,5 +192,5 @@ func _new_block(content: Array, branch_index: int = -1) -> Dictionary:
 	return {
 		"content": content,
 		"position": 0,
-		"branch_index": branch_index
+		"branch_index": branch_index,
 	}
